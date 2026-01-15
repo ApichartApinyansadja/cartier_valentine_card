@@ -116,20 +116,20 @@ export default function Home() {
   const [totalPage, setTotalPage] = useState(0);
 
   // Step management
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  const [currentStep, setCurrentStep] = useState<0 | 1 | 2 | 3>(0);
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const [formData, setFormData] = useState({
-    to: "Dear Cartier",
-    from: "",
+    to: "You",
+    from: "Me",
     message: "Happy Valentine's Day",
   });
 
   const badWords = [
-    "ไอ้​",
-    "อี​",
+    "ไอ้",
+    "อี",
     "มึง​",
-    "กู​",
-    "ชั่ว​",
+    "กู",
+    "ชั่ว",
     "เลว",
     "ควาย",
     "เหี้ย",
@@ -142,7 +142,7 @@ export default function Home() {
     "fuck",
     "bitch",
     "ค*ย",
-    "ห*ี​",
+    "ห*ี",
     "แ*ตด",
     "เย็*ด",
   ];
@@ -200,12 +200,26 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-stone-900 to-stone-800 py-6 px-4 flex flex-col items-center justify-center">
+      {/* Step 0: Welcome Screen */}
+      {currentStep === 0 && (
+        <div className="flex flex-col items-center justify-center h-screen">
+          <h1 className="text-5xl font-serif font-bold text-red-100 text-center mb-6">CARTIER</h1>
+          <h2 className="text-3xl font-serif font-bold text-red-100 text-center mb-12">Valentine's Card</h2>
+          <button
+            onClick={() => setCurrentStep(1)}
+            className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded font-serif text-lg"
+          >
+            คลิกเพื่อรังสรรค์การ์ดอวยพร
+          </button>
+        </div>
+      )}
+
       {/* Step 1: Product Selection */}
       {currentStep === 1 && (
         <>
           <div className="mb-4">
             <h1 className="text-3xl font-serif font-bold text-red-100 text-center">
-              CARTIER COLLECTION
+              CARTIER V-DAY
             </h1>
             <div className="h-1 w-32 bg-gradient-to-r from-red-400 to-red-300 mx-auto mt-2" />
           </div>
