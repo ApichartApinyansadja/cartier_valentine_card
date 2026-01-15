@@ -164,6 +164,17 @@ export default function Home() {
     }
   };
 
+  React.useEffect(() => {
+    if (currentStep === 1 && selectedProduct) {
+      setTimeout(() => {
+        const pf = bookRef.current?.pageFlip();
+        if (pf) {
+          pf.turnToPage(selectedProduct);
+        }
+      }, 20);
+    }
+  }, [currentStep, selectedProduct]);
+
   const handleConfirmStep1 = () => {
     if (page >= 1 && page <= 4) {
       setSelectedProduct(page);
@@ -248,7 +259,7 @@ export default function Home() {
               style={{}}
               startPage={1}
               showPageCorners
-              disableFlipByClick={true}
+              disableFlipByClick={false}
               onInit={handleInit}
               onFlip={(e: any) => setPage(e.data)}
               className="shadow-2xl"
@@ -278,7 +289,7 @@ export default function Home() {
           <div className="flex gap-4 items-center justify-center mb-4">
             <button
               onClick={() => bookRef.current?.pageFlip().flipPrev("top")}
-              disabled={page === 1}
+              disabled={page <= 1}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-stone-600 text-white rounded font-serif text-sm"
             >
               ← Previous
