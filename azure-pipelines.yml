@@ -1,0 +1,109 @@
+trigger:
+  - develop
+
+pool:
+  vmImage: 'ubuntu-22.04'
+
+variables:
+  # DAIJAI
+  # NEXT_PUBLIC_LINE_LIFF_BASEURL: https://daijai.ampmmarketing.net/liff/
+  # NEXT_PUBLIC_LINE_CLIENT_ID: 1654185876
+  # NEXT_PUBLIC_LINE_REDIRECT_URI: https://daijai.ampmmarketing.net/liff/
+  # NEXT_PUBLIC_LINE_LIFF_ID: 1654185876-p5eL2WoG
+  # NEXT_PUBLIC_SUB_URL: /liff
+  # IDP_URL_ENDPOINT:
+  # IDP_GRANT_TYPE:
+  # IDP_CLIENT_ID:
+  # IDP_CLIENT_SECRET:
+  # VML
+  # NEXT_PUBLIC_LINE_LIFF_BASEURL: https://vml.ampmmarketing.net/liff/
+  # NEXT_PUBLIC_LINE_CLIENT_ID: 2007047684
+  # NEXT_PUBLIC_LINE_REDIRECT_URI: https://vml.ampmmarketing.net/liff/
+  # NEXT_PUBLIC_LINE_LIFF_ID: 2007047684-PjVEbYaZ
+  # NEXT_PUBLIC_SUB_URL: /liff
+  # IDP_URL_ENDPOINT:
+  # IDP_GRANT_TYPE:
+  # IDP_CLIENT_ID:
+  # IDP_CLIENT_SECRET:
+  # SCHENEIDER UAT
+  # NEXT_PUBLIC_LINE_LIFF_BASEURL: https://uat-line-official-th.se.com/liff/
+  # NEXT_PUBLIC_LINE_CLIENT_ID: 2007710013
+  # NEXT_PUBLIC_LINE_REDIRECT_URI: https://uat-line-official-th.se.com/liff/
+  # NEXT_PUBLIC_LINE_LIFF_ID: 2007710013-kDar0zGQ
+  # NEXT_PUBLIC_SUB_URL: /liff
+  # IDP_URL_ENDPOINT: https://idp-uat.se.com/oauth/token
+  # IDP_GRANT_TYPE: authorization_code
+  # IDP_CLIENT_ID: z1ieJ5Wr9dSdeiLLGPZEcmLSvuwmUSvZ
+  # IDP_CLIENT_SECRET: Jds3jhYccawCbwssWFRiYAMrWwcLJj5OHEmfs_JhcRQ-f48f-QVqMzxMwLYyDqEs
+  # SCHNEIDER PRODUCTION
+  NEXT_PUBLIC_LINE_LIFF_BASEURL: https://app-wpp-vml-ampm-schneider-ase-p-liff.azurewebsites.net/
+  NEXT_PUBLIC_LINE_CLIENT_ID: 1657622971
+  NEXT_PUBLIC_LINE_REDIRECT_URI: https://app-wpp-vml-ampm-schneider-ase-p-liff.azurewebsites.net/
+  NEXT_PUBLIC_LINE_LIFF_ID: 1657622971-M9905P8g
+  NEXT_PUBLIC_SUB_URL: 
+  IDP_URL_ENDPOINT: https://idp.se.com/oauth/token
+  IDP_GRANT_TYPE: authorization_code
+  IDP_CLIENT_ID: YmllffY1n0nrbzvb9RUgpZYEW88ghcER
+  IDP_CLIENT_SECRET: 9X5Z5jdyPwUyvXiYS3TF8S6qxCT_PPxIq-ghunXqD1ye-sm1vAwHcfeTjwJ-2x6H
+
+steps:
+  # 1. ติดตั้ง Node.js
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '22.x'
+    displayName: 'Install Node.js'
+
+  # 2. ติดตั้ง dependencies แบบ clean — ใช้ `npm ci` เมื่อมี lockfile, ถ้าไม่มีให้ fallback เป็น `npm install`
+  - script: |
+      echo "Installing dependencies"
+      if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ] || [ -f pnpm-lock.yaml ]; then
+        echo "Lockfile found — running npm ci"
+        npm ci --no-audit
+      else
+        echo "No lockfile found — running npm install (no-audit)"
+        npm install --no-audit
+      fi
+    displayName: 'Install dependencies'
+
+  # 3. Build Next.js ด้วย basePath
+  - script: |
+      echo "Building Next.js"
+      npm run build
+    displayName: 'Build Next.js'
+    env:
+      NEXT_PUBLIC_LINE_LIFF_BASEURL: $(NEXT_PUBLIC_LINE_LIFF_BASEURL)
+      NEXT_PUBLIC_LINE_CLIENT_ID: $(NEXT_PUBLIC_LINE_CLIENT_ID)
+      NEXT_PUBLIC_LINE_REDIRECT_URI: $(NEXT_PUBLIC_LINE_REDIRECT_URI)
+      NEXT_PUBLIC_LINE_LIFF_ID: $(NEXT_PUBLIC_LINE_LIFF_ID)
+      NEXT_PUBLIC_SUB_URL: $(NEXT_PUBLIC_SUB_URL)
+      IDP_URL_ENDPOINT: $(IDP_URL_ENDPOINT)
+      IDP_GRANT_TYPE: $(IDP_GRANT_TYPE)
+      IDP_CLIENT_ID: $(IDP_CLIENT_ID)
+      IDP_CLIENT_SECRET: $(IDP_CLIENT_SECRET)
+
+  # 4. Run lint (optional)
+  - script: npm run lint
+    displayName: 'Lint code'
+
+  # 5. สร้าง compressed node_modules สำหรับ Oryx
+  - script: |
+      tar -czf node_modules.tar.gz node_modules
+      echo "Compressed node_modules created"
+    displayName: 'Compress node_modules for Azure Oryx'
+
+  # 6. Archive build + node_modules.tar.gz
+  - task: ArchiveFiles@2
+    displayName: 'Archive build + compressed node_modules'
+    inputs:
+      rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+      includeRootFolder: false
+      archiveType: 'zip'
+      archiveFile: '$(Build.ArtifactStagingDirectory)/nextjs.zip'
+      replaceExistingArchive: true
+
+  # 7. Publish artifact
+  - task: PublishBuildArtifacts@1
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: 'drop'
+    displayName: 'Publish build artifacts'
