@@ -2,6 +2,7 @@
 
 import React, { useRef, useState, PropsWithChildren } from "react";
 import HTMLFlipBook from "react-pageflip";
+import html2canvas from "html2canvas";
 
 const PageCover = React.forwardRef<HTMLDivElement, PropsWithChildren>(
   ({ children }, ref) => (
@@ -202,6 +203,40 @@ export default function Home() {
     setCurrentStep(2);
   };
 
+  const handleSave = async () => {
+    const cardElement = document.getElementById('valentine-card');
+    if (cardElement) {
+      try {
+        // Clone element and convert Tailwind classes to inline styles
+        const clone = cardElement.cloneNode(true) as HTMLElement;
+        clone.style.position = 'fixed';
+        clone.style.left = '-9999px';
+        document.body.appendChild(clone);
+
+        const canvas = await html2canvas(clone, {
+          useCORS: true,
+          scale: 2,
+          backgroundColor: null,
+          logging: false,
+          allowTaint: true,
+          foreignObjectRendering: false
+        });
+        
+        document.body.removeChild(clone);
+        
+        const image = canvas.toDataURL('image/jpeg', 0.95);
+        
+        const link = document.createElement('a');
+        link.download = 'cartier-valentine-card.jpg';
+        link.href = image;
+        link.click();
+      } catch (error) {
+        console.error('Error saving image:', error);
+        alert('ไม่สามารถบันทึกรูปได้ กรุณาลองอีกครั้ง');
+      }
+    }
+  };
+
   const getSelectedProductData = () => {
     if (selectedProduct && selectedProduct >= 1 && selectedProduct <= 4) {
       return PAGES_DATA[selectedProduct - 1];
@@ -289,7 +324,7 @@ export default function Home() {
           <div className="flex gap-4 items-center justify-center mb-4">
             <button
               onClick={() => bookRef.current?.pageFlip().flipPrev("top")}
-              disabled={page <= 1}
+              hidden={page <= 1}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-stone-600 text-white rounded font-serif text-sm"
             >
               ← Previous
@@ -299,7 +334,7 @@ export default function Home() {
             </span>
             <button
               onClick={() => bookRef.current?.pageFlip().flipNext("top")}
-              disabled={page >= totalPage - 2}
+              hidden={page >= totalPage - 2}
               className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-stone-600 text-white rounded font-serif text-sm"
             >
               Next →
@@ -402,6 +437,7 @@ export default function Home() {
 
           {/* Card with Product as Background */}
           <div
+            id="valentine-card"
             className="relative w-full aspect-square rounded overflow-hidden border border-red-600"
             style={{
               backgroundImage: `url(${getSelectedProductData()!.imageUrl})`,
@@ -441,7 +477,10 @@ export default function Home() {
             >
               กลับ
             </button>
-            <button className="px-6 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded font-serif">
+            <button 
+              onClick={handleSave}
+              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-serif"
+            >
               บันทึก
             </button>
             <button className="px-6 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded font-serif">
