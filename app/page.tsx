@@ -3,6 +3,8 @@
 import React, { useRef, useState, PropsWithChildren } from "react";
 import HTMLFlipBook from "react-pageflip";
 import html2canvas from "html2canvas";
+import { useLiff } from "@/hooks/useLiff";
+import * as gtag from "@/lib/gtag";
 
 const PageCover = React.forwardRef<HTMLDivElement, PropsWithChildren>(
   ({ children }, ref) => (
@@ -115,6 +117,8 @@ export default function Home() {
   const bookRef = useRef<any>(null);
   const [page, setPage] = useState(0);
   const [totalPage, setTotalPage] = useState(0);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [minLoadingTime, setMinLoadingTime] = useState(true);
 
   // Step management
   const [currentStep, setCurrentStep] = useState<0 | 1 | 2 | 3>(0);
@@ -124,6 +128,42 @@ export default function Home() {
     from: "Me",
     message: "Happy Valentine's Day",
   });
+
+  const { liffReady, profile, error: liffError } = useLiff();
+
+  React.useEffect(() => {
+    if (profile) {
+      console.log("LINE profile", profile);
+    }
+  }, [profile]);
+
+  // Minimum 3 second loading time
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinLoadingTime(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Preload all images
+  React.useEffect(() => {
+    const imageUrls = PAGES_DATA.map((page) => page.imageUrl);
+    let loadedCount = 0;
+
+    const handleImageLoad = () => {
+      loadedCount++;
+      if (loadedCount === imageUrls.length) {
+        setImagesLoaded(true);
+      }
+    };
+
+    imageUrls.forEach((url) => {
+      const img = new Image();
+      img.onload = handleImageLoad;
+      img.onerror = handleImageLoad; // Count as loaded even if error
+      img.src = url;
+    });
+  }, []);
 
   const badWords = [
     "ไอ้",
@@ -179,6 +219,21 @@ export default function Home() {
   const handleConfirmStep1 = () => {
     if (page >= 1 && page <= 4) {
       setSelectedProduct(page);
+      // Track product selected
+      switch (page) {
+        case 1:
+          gtag.trackRingsSelected();
+          break;
+        case 2:
+          gtag.trackBraceletsSelected();
+          break;
+        case 3:
+          gtag.trackWatchesSelected();
+          break;
+        case 4:
+          gtag.trackFragrancesSelected();
+          break;
+      }
       setCurrentStep(2);
     }
   };
@@ -195,6 +250,8 @@ export default function Home() {
         message: censorBadWords(formData.message),
       };
       setFormData(censoredData);
+      // Track complete (user finished creating card)
+      gtag.trackComplete();
       setCurrentStep(3);
     }
   };
@@ -204,6 +261,9 @@ export default function Home() {
   };
 
   const handleSave = async () => {
+    // Track download event
+    gtag.trackDownload();
+    
     const cardElement = document.getElementById('valentine-card');
     if (cardElement) {
       try {
@@ -246,19 +306,41 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-stone-900 to-stone-800 py-6 px-4 flex flex-col items-center justify-center">
-      {/* Step 0: Welcome Screen */}
-      {currentStep === 0 && (
-        <div className="flex flex-col items-center justify-center h-screen">
-          <h1 className="text-5xl font-serif font-bold text-red-100 text-center mb-6">CARTIER</h1>
-          <h2 className="text-3xl font-serif font-bold text-red-100 text-center mb-12">Valentine's Card</h2>
-          <button
-            onClick={() => setCurrentStep(1)}
-            className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded font-serif text-lg"
-          >
-            คลิกเพื่อรังสรรค์การ์ดอวยพร
-          </button>
+      {/* Loading Screen */}
+      {(!liffReady || !imagesLoaded || minLoadingTime) && (
+        <div className="flex flex-col items-center justify-center h-screen gap-6">
+          {/* <h1 className="text-5xl font-serif font-bold text-red-100 text-center mb-6">CARTIER</h1> */}
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-600 border-t-red-100" />
+            <p className="text-red-100 font-serif text-lg">Loading...</p>
+            {!liffReady && (
+              <p className="text-amber-300 font-serif text-sm text-center">
+                กำลังจะเข้า Login ด้วย LINE...
+              </p>
+            )}
+          </div>
         </div>
       )}
+
+      {/* Main App */}
+      {liffReady && imagesLoaded && !minLoadingTime && (
+        <>
+          {/* Step 0: Welcome Screen */}
+          {currentStep === 0 && (
+            <div className="flex flex-col items-center justify-center h-screen">
+              <h1 className="text-5xl font-serif font-bold text-red-100 text-center mb-6">CARTIER</h1>
+              <h2 className="text-3xl font-serif font-bold text-red-100 text-center mb-12">Valentine's Card</h2>
+              <button
+                onClick={() => {
+                  gtag.trackEngagedUser();
+                  setCurrentStep(1);
+                }}
+                className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded font-serif text-lg"
+              >
+                คลิกเพื่อรังสรรค์การ์ดอวยพร
+              </button>
+            </div>
+          )}
 
       {/* Step 1: Product Selection */}
       {currentStep === 1 && (
@@ -483,11 +565,16 @@ export default function Home() {
             >
               บันทึก
             </button>
-            <button className="px-6 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded font-serif">
+            <button 
+              onClick={() => gtag.trackShare()}
+              className="px-6 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded font-serif"
+            >
               แชร์ให้เพื่อน
             </button>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

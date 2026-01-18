@@ -1,6 +1,6 @@
 import liff from '@line/liff';
 
-export const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID || '';
+export const LIFF_ID = process.env.NEXT_PUBLIC_LINE_LIFF_ID || process.env.NEXT_PUBLIC_LIFF_ID || '';
 
 /**
  * Initialize LIFF
