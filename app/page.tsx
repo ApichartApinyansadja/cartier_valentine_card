@@ -115,6 +115,7 @@ const PAGES_DATA = [
 
 export default function Home() {
   const bookRef = useRef<any>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [page, setPage] = useState(0);
   const [totalPage, setTotalPage] = useState(0);
   const [imagesLoaded, setImagesLoaded] = useState(false);
@@ -128,6 +129,8 @@ export default function Home() {
     from: "Me",
     message: "Happy Valentine's Day",
   });
+  const [cardImageDataUrl, setCardImageDataUrl] = useState<string>('');
+  const [merging, setMerging] = useState(false);
 
   const { liffReady, profile, error: liffError } = useLiff();
 
@@ -141,7 +144,7 @@ export default function Home() {
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setMinLoadingTime(false);
-    }, 3000);
+    }, 1000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -250,10 +253,150 @@ export default function Home() {
         message: censorBadWords(formData.message),
       };
       setFormData(censoredData);
+      
       // Track complete (user finished creating card)
       gtag.trackComplete();
-      setCurrentStep(3);
+      
+      // Create merged image on canvas
+      setMerging(true);
+      const productData = getSelectedProductData();
+      if (productData) {
+        mergeImageWithText(productData.imageUrl, censoredData, () => {
+          setMerging(false);
+          setCurrentStep(3);
+        });
+      }
     }
+  };
+
+  const mergeImageWithText = (imageUrl: string, data: typeof formData, onComplete: () => void) => {
+    // Try CORS proxy first, then fallback to direct URL
+    const corsProxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`;
+    
+    const tryLoadImage = (url: string, isFallback = false) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 400;
+        canvas.height = 400;
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) return;
+        
+        // Draw image
+        ctx.drawImage(img, 0, 0, 400, 400);
+        
+        // Draw semi-transparent overlay at bottom
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fillRect(0, 200, 400, 200);
+        
+        // Draw text
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 18px Georgia, serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 2;
+        
+        // To
+        ctx.fillText(`To: ${data.to}`, 200, 240);
+        
+        // Message (smaller font)
+        ctx.font = '16px Georgia, serif';
+        const lines = data.message.split('\n');
+        let yPos = 280;
+        lines.forEach(line => {
+          ctx.fillText(line, 200, yPos);
+          yPos += 20;
+        });
+        
+        // From
+        ctx.font = 'bold 18px Georgia, serif';
+        ctx.fillText(`From: ${data.from}`, 200, 360);
+        
+        // Convert to data URL
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+        setCardImageDataUrl(dataUrl);
+        console.log('✅ Card image merged on canvas');
+        onComplete();
+      };
+      
+      img.onerror = () => {
+        if (!isFallback) {
+          console.warn('⚠️ CORS proxy failed, trying direct URL');
+          // Try direct URL as fallback
+          tryLoadImage(imageUrl, true);
+        } else {
+          console.warn('⚠️ Image load failed, using gradient fallback');
+          // Final fallback: gradient + text
+          createFallbackImage(data, onComplete);
+        }
+      };
+      
+      img.src = url;
+    };
+    
+    // Start with CORS proxy
+    tryLoadImage(corsProxyUrl);
+  };
+
+  const createFallbackImage = (data: typeof formData, onComplete: () => void) => {
+    const productIdx = selectedProduct ? selectedProduct - 1 : 0;
+    const colors = [
+      { start: '#c084fc', end: '#7c3aed' }, // Rings
+      { start: '#f87171', end: '#dc2626' }, // Bracelets
+      { start: '#fbbf24', end: '#f59e0b' }, // Watches
+      { start: '#a78bfa', end: '#8b5cf6' }, // Fragrances
+    ];
+    const color = colors[productIdx] || colors[0];
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) return;
+    
+    // Draw gradient fallback
+    const gradient = ctx.createLinearGradient(0, 0, 400, 400);
+    gradient.addColorStop(0, color.start);
+    gradient.addColorStop(1, color.end);
+    
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 400, 400);
+    
+    // Draw overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fillRect(0, 200, 400, 200);
+    
+    // Draw text
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 18px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+    
+    ctx.fillText(`To: ${data.to}`, 200, 240);
+    
+    ctx.font = '16px Georgia, serif';
+    const lines = data.message.split('\n');
+    let yPos = 280;
+    lines.forEach(line => {
+      ctx.fillText(line, 200, yPos);
+      yPos += 20;
+    });
+    
+    ctx.font = 'bold 18px Georgia, serif';
+    ctx.fillText(`From: ${data.from}`, 200, 360);
+    
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+    setCardImageDataUrl(dataUrl);
+    onComplete();
   };
 
   const handleBackStep3 = () => {
@@ -264,36 +407,35 @@ export default function Home() {
     // Track download event
     gtag.trackDownload();
     
-    const cardElement = document.getElementById('valentine-card');
-    if (cardElement) {
-      try {
-        // Clone element and convert Tailwind classes to inline styles
-        const clone = cardElement.cloneNode(true) as HTMLElement;
-        clone.style.position = 'fixed';
-        clone.style.left = '-9999px';
-        document.body.appendChild(clone);
-
-        const canvas = await html2canvas(clone, {
-          useCORS: true,
-          scale: 2,
-          backgroundColor: null,
-          logging: false,
-          allowTaint: true,
-          foreignObjectRendering: false
-        });
-        
-        document.body.removeChild(clone);
-        
-        const image = canvas.toDataURL('image/jpeg', 0.95);
-        
-        const link = document.createElement('a');
-        link.download = 'cartier-valentine-card.jpg';
-        link.href = image;
-        link.click();
-      } catch (error) {
-        console.error('Error saving image:', error);
-        alert('ไม่สามารถบันทึกรูปได้ กรุณาลองอีกครั้ง');
-      }
+    if (!cardImageDataUrl) {
+      alert('Card image not ready');
+      return;
+    }
+    
+    try {
+      // Fetch the data URL as blob
+      const response = await fetch(cardImageDataUrl);
+      const blob = await response.blob();
+      
+      console.log('✅ Blob created:', blob.size, 'bytes');
+      
+      // Download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'cartier-valentine-card.jpg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+      }, 100);
+      
+      console.log('✅ Download triggered');
+    } catch (error) {
+      console.error('❌ Error downloading:', error);
+      alert('Error: ' + (error instanceof Error ? error.message : 'Unknown'));
     }
   };
 
