@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useRef, useState, PropsWithChildren } from "react";
+import React, { useRef, useState, useCallback, PropsWithChildren } from "react";
 import HTMLFlipBook from "react-pageflip";
-import html2canvas from "html2canvas";
 import { useLiff } from "@/hooks/useLiff";
 import * as gtag from "@/lib/gtag";
 
@@ -66,7 +65,7 @@ const PAGES_DATA = [
   {
     title: "Cartier Rings",
     imageUrl:
-      "https://www.cartier.com/dw/image/v2/BGTJ_PRD/on/demandware.static/-/Sites-cartier-master/default/dw84f25cc7/images/large/fe332aeba0c7541399fcf9a7e11f9924.png?sw=350&sh=350&sm=fit&sfrm=png",
+      "/products/ring.jpeg",
     content: {
       heading: "Timeless Elegance",
       text: [
@@ -78,7 +77,7 @@ const PAGES_DATA = [
   {
     title: "Cartier Bracelets",
     imageUrl:
-      "https://www.cartier.com/dw/image/v2/BGTJ_PRD/on/demandware.static/-/Sites-cartier-master/default/dwa168da07/images/large/aa35bfeac8f057d89dc5916fad2fbb28.png?sw=750&sh=750&sm=fit&sfrm=png",
+      "/products/bracelet.jpeg",
     content: {
       heading: "Luxury in Motion",
       text: [
@@ -90,7 +89,7 @@ const PAGES_DATA = [
   {
     title: "Cartier Watches",
     imageUrl:
-      "https://www.cartier.com/dw/image/v2/BGTJ_PRD/on/demandware.static/-/Sites-cartier-master/default/dwbb85beda/images/large/e595116d53265480a7df020d5d8e7d34.png?sw=750&sh=750&sm=fit&sfrm=png",
+      "/products/watche.jpeg",
     content: {
       heading: "Time in Perfection",
       text: [
@@ -100,13 +99,13 @@ const PAGES_DATA = [
     },
   },
   {
-    title: "Cartier Fragrances",
+    title: "Cartier Perfumes",
     imageUrl:
-      "https://www.cartier.com/dw/image/v2/BGTJ_PRD/on/demandware.static/-/Sites-cartier-master/default/dwddafea2d/images/large/564c3c12ecd95efa931df3b297d6a0e3.png?sw=750&sh=750&sm=fit&sfrm=png",
+      "/products/perfume.jpeg",
     content: {
       heading: "Essence of Luxury",
       text: [
-        "Cartier fragrances capture the essence of elegance in every spritz.",
+        "Cartier perfumes capture the essence of elegance in every spritz.",
         "Discover scents that define moments, evoke emotions, and express your unique style.",
       ],
     },
@@ -115,7 +114,6 @@ const PAGES_DATA = [
 
 export default function Home() {
   const bookRef = useRef<any>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [page, setPage] = useState(0);
   const [totalPage, setTotalPage] = useState(0);
   const [imagesLoaded, setImagesLoaded] = useState(false);
@@ -129,7 +127,7 @@ export default function Home() {
     from: "Me",
     message: "Happy Valentine's Day",
   });
-  const [cardImageDataUrl, setCardImageDataUrl] = useState<string>('');
+  const [cardImageDataUrl, setCardImageDataUrl] = useState<string>("");
   const [merging, setMerging] = useState(false);
 
   const { liffReady, profile, error: liffError } = useLiff();
@@ -150,55 +148,17 @@ export default function Home() {
 
   // Preload all images
   React.useEffect(() => {
-    const imageUrls = PAGES_DATA.map((page) => page.imageUrl);
-    let loadedCount = 0;
-
-    const handleImageLoad = () => {
-      loadedCount++;
-      if (loadedCount === imageUrls.length) {
-        setImagesLoaded(true);
-      }
-    };
-
-    imageUrls.forEach((url) => {
+    Promise.all(PAGES_DATA.map(p => {
       const img = new Image();
-      img.onload = handleImageLoad;
-      img.onerror = handleImageLoad; // Count as loaded even if error
-      img.src = url;
-    });
+      img.src = p.imageUrl;
+      return new Promise(resolve => { img.onload = img.onerror = resolve; });
+    })).then(() => setImagesLoaded(true));
   }, []);
 
-  const badWords = [
-    "ไอ้",
-    "อี",
-    "มึง​",
-    "กู",
-    "ชั่ว",
-    "เลว",
-    "ควาย",
-    "เหี้ย",
-    "สัตว์",
-    "ไม่ดี",
-    "หยาบคาย",
-    "shit",
-    "damn",
-    "hell",
-    "fuck",
-    "bitch",
-    "ค*ย",
-    "ห*ี",
-    "แ*ตด",
-    "เย็*ด",
-  ];
+  const badWords = ["ไอ้","อี","มึง​","กู","ชั่ว","เลว","ควาย","เหี้ย","สัตว์","ไม่ดี","หยาบคาย","shit","damn","hell","fuck","bitch","ค*ย","ห*ี","แ*ตด","เย็*ด"];
 
-  const censorBadWords = (text: string): string => {
-    let result = text;
-    badWords.forEach((word) => {
-      const regex = new RegExp(word, "gi");
-      result = result.replace(regex, "*".repeat(word.length));
-    });
-    return result;
-  };
+  const censorBadWords = useCallback((text: string): string => 
+    badWords.reduce((r, w) => r.replace(new RegExp(w, "gi"), "*".repeat(w.length)), text), []);
 
   const handleInit = () => {
     const pf = bookRef.current?.pageFlip();
@@ -219,31 +179,22 @@ export default function Home() {
     }
   }, [currentStep, selectedProduct]);
 
-  const handleConfirmStep1 = () => {
-    if (page >= 1 && page <= 4) {
-      setSelectedProduct(page);
-      // Track product selected
-      switch (page) {
-        case 1:
-          gtag.trackRingsSelected();
-          break;
-        case 2:
-          gtag.trackBraceletsSelected();
-          break;
-        case 3:
-          gtag.trackWatchesSelected();
-          break;
-        case 4:
-          gtag.trackFragrancesSelected();
-          break;
-      }
-      setCurrentStep(2);
-    }
+  const trackingMap: Record<number, () => void> = {
+    1: gtag.trackRingsSelected,
+    2: gtag.trackBraceletsSelected,
+    3: gtag.trackWatchesSelected,
+    4: gtag.trackPerfumesSelected,
   };
 
-  const handleBackStep2 = () => {
-    setCurrentStep(1);
-  };
+  const handleConfirmStep1 = useCallback(() => {
+    if (page >= 1 && page <= 4) {
+      setSelectedProduct(page);
+      trackingMap[page]?.();
+      setCurrentStep(2);
+    }
+  }, [page]);
+
+  const handleBackStep2 = useCallback(() => setCurrentStep(1), []);
 
   const handleConfirmStep2 = () => {
     if (formData.to && formData.from && formData.message) {
@@ -257,169 +208,96 @@ export default function Home() {
       // Track complete (user finished creating card)
       gtag.trackComplete();
       
-      // Create merged image on canvas
-      setMerging(true);
-      const productData = getSelectedProductData();
-      if (productData) {
-        mergeImageWithText(productData.imageUrl, censoredData, () => {
-          setMerging(false);
-          setCurrentStep(3);
-        });
-      }
+      // Move to step 3 and trigger merge
+      setCurrentStep(3);
+      setTimeout(() => {
+        mergeImageWithText();
+      }, 100);
     }
   };
 
-  const mergeImageWithText = (imageUrl: string, data: typeof formData, onComplete: () => void) => {
-    // Try CORS proxy first, then fallback to direct URL
-    const corsProxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`;
-    
-    const tryLoadImage = (url: string, isFallback = false) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+  const mergeImageWithText = async () => {
+    try {
+      setMerging(true);
+      const imageUrl = getSelectedProductData()!.imageUrl!;
       
+      // Load the image
+      const img = new Image();
+      img.crossOrigin = "anonymous";
       img.onload = () => {
+        // Create canvas
         const canvas = document.createElement('canvas');
         canvas.width = 400;
         canvas.height = 400;
         const ctx = canvas.getContext('2d');
-        
         if (!ctx) return;
-        
+
         // Draw image
         ctx.drawImage(img, 0, 0, 400, 400);
-        
-        // Draw semi-transparent overlay at bottom
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.fillRect(0, 200, 400, 200);
-        
+
+        // Draw semi-transparent overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(0, 0, 400, 400);
+
         // Draw text
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 18px Georgia, serif';
         ctx.textAlign = 'center';
         ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
         ctx.shadowBlur = 4;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 2;
-        
-        // To
-        ctx.fillText(`To: ${data.to}`, 200, 240);
-        
-        // Message (smaller font)
-        ctx.font = '16px Georgia, serif';
-        const lines = data.message.split('\n');
-        let yPos = 280;
-        lines.forEach(line => {
-          ctx.fillText(line, 200, yPos);
-          yPos += 20;
+
+        // To - positioned at bottom area
+        ctx.font = 'bold 22px serif';
+        ctx.fillText(`To: ${formData.to}`, 200, 310);
+
+        // Message - centered at bottom area with spacing
+        ctx.font = '18px serif';
+        const messageLines = formData.message.split('\n');
+        const messageStartY = 340;
+        messageLines.forEach((line, idx) => {
+          ctx.fillText(line, 200, messageStartY + idx * 25);
         });
+
+        // From - at very bottom
+        ctx.font = 'bold 22px serif';
+        ctx.fillText(`From: ${formData.from}`, 200, 375);
+
+        // Convert to JPEG
+        const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
         
-        // From
-        ctx.font = 'bold 18px Georgia, serif';
-        ctx.fillText(`From: ${data.from}`, 200, 360);
-        
-        // Convert to data URL
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-        setCardImageDataUrl(dataUrl);
-        console.log('✅ Card image merged on canvas');
-        onComplete();
+        // Delay 3 seconds before showing
+        setTimeout(() => {
+          setCardImageDataUrl(dataUrl);
+          setMerging(false);
+        }, 2000);
       };
-      
       img.onerror = () => {
-        if (!isFallback) {
-          console.warn('⚠️ CORS proxy failed, trying direct URL');
-          // Try direct URL as fallback
-          tryLoadImage(imageUrl, true);
-        } else {
-          console.warn('⚠️ Image load failed, using gradient fallback');
-          // Final fallback: gradient + text
-          createFallbackImage(data, onComplete);
-        }
+        console.error('Failed to load image');
+        alert('ไม่สามารถโหลดรูปได้');
+        setMerging(false);
       };
-      
-      img.src = url;
-    };
-    
-    // Start with CORS proxy
-    tryLoadImage(corsProxyUrl);
+      img.src = imageUrl;
+    } catch (error) {
+      console.error('Error merging card:', error);
+      alert('ไม่สามารถประมวลผลการ์ดได้');
+      setMerging(false);
+    }
   };
 
-  const createFallbackImage = (data: typeof formData, onComplete: () => void) => {
-    const productIdx = selectedProduct ? selectedProduct - 1 : 0;
-    const colors = [
-      { start: '#c084fc', end: '#7c3aed' }, // Rings
-      { start: '#f87171', end: '#dc2626' }, // Bracelets
-      { start: '#fbbf24', end: '#f59e0b' }, // Watches
-      { start: '#a78bfa', end: '#8b5cf6' }, // Fragrances
-    ];
-    const color = colors[productIdx] || colors[0];
-    
-    const canvas = document.createElement('canvas');
-    canvas.width = 400;
-    canvas.height = 400;
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) return;
-    
-    // Draw gradient fallback
-    const gradient = ctx.createLinearGradient(0, 0, 400, 400);
-    gradient.addColorStop(0, color.start);
-    gradient.addColorStop(1, color.end);
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 400, 400);
-    
-    // Draw overlay
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-    ctx.fillRect(0, 200, 400, 200);
-    
-    // Draw text
-    ctx.fillStyle = 'white';
-    ctx.font = 'bold 18px Georgia, serif';
-    ctx.textAlign = 'center';
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 4;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 2;
-    
-    ctx.fillText(`To: ${data.to}`, 200, 240);
-    
-    ctx.font = '16px Georgia, serif';
-    const lines = data.message.split('\n');
-    let yPos = 280;
-    lines.forEach(line => {
-      ctx.fillText(line, 200, yPos);
-      yPos += 20;
-    });
-    
-    ctx.font = 'bold 18px Georgia, serif';
-    ctx.fillText(`From: ${data.from}`, 200, 360);
-    
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
-    setCardImageDataUrl(dataUrl);
-    onComplete();
-  };
-
-  const handleBackStep3 = () => {
-    setCurrentStep(2);
-  };
+  const handleBackStep3 = useCallback(() => setCurrentStep(2), []);
 
   const handleSave = async () => {
     // Track download event
     gtag.trackDownload();
     
-    if (!cardImageDataUrl) {
-      alert('Card image not ready');
-      return;
-    }
-    
     try {
-      // Fetch the data URL as blob
+      if (!cardImageDataUrl) {
+        alert('รูปยังไม่พร้อม กรุณารอสักครู่');
+        return;
+      }
+
       const response = await fetch(cardImageDataUrl);
       const blob = await response.blob();
       
-      console.log('✅ Blob created:', blob.size, 'bytes');
-      
-      // Download
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -432,10 +310,10 @@ export default function Home() {
         URL.revokeObjectURL(url);
       }, 100);
       
-      console.log('✅ Download triggered');
+      console.log('✅ Download triggered successfully');
     } catch (error) {
-      console.error('❌ Error downloading:', error);
-      alert('Error: ' + (error instanceof Error ? error.message : 'Unknown'));
+      console.error('❌ Error saving:', error);
+      alert('ไม่สามารถบันทึกรูปได้');
     }
   };
 
@@ -451,15 +329,9 @@ export default function Home() {
       {/* Loading Screen */}
       {(!liffReady || !imagesLoaded || minLoadingTime) && (
         <div className="flex flex-col items-center justify-center h-screen gap-6">
-          {/* <h1 className="text-5xl font-serif font-bold text-red-100 text-center mb-6">CARTIER</h1> */}
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-600 border-t-red-100" />
             <p className="text-red-100 font-serif text-lg">Loading...</p>
-            {!liffReady && (
-              <p className="text-amber-300 font-serif text-sm text-center">
-                กำลังจะเข้า Login ด้วย LINE...
-              </p>
-            )}
           </div>
         </div>
       )}
@@ -575,10 +447,10 @@ export default function Home() {
       )}
 
       {/* Step 2: Form Input */}
-      {currentStep === 2 && (
+      {currentStep === 2 && getSelectedProductData() && (
         <div className="w-full max-w-md">
           <h1 className="text-3xl font-serif font-bold text-red-100 text-center mb-6">
-            กรอกข้อมูล
+            กรอกข้อมูลของคุณ
           </h1>
 
           <div className="bg-stone-800/50 border border-red-600 rounded p-6 space-y-4">
@@ -646,74 +518,59 @@ export default function Home() {
               disabled={!formData.to || !formData.from || !formData.message}
               className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-stone-600 disabled:cursor-not-allowed text-white rounded font-serif"
             >
-              เรียบร้อย
+              ยืนยัน
             </button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Display Result */}
+      {/* Step 3: Display Result (merged image) */}
       {currentStep === 3 && getSelectedProductData() && (
         <div className="w-full max-w-md">
-          <h1 className="text-3xl font-serif font-bold text-red-100 text-center mb-6">
-            การ์ดของคุณ
-          </h1>
-
-          {/* Card with Product as Background */}
-          <div
-            id="valentine-card"
-            className="relative w-full aspect-square rounded overflow-hidden border border-red-600"
-            style={{
-              backgroundImage: `url(${getSelectedProductData()!.imageUrl})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          >
-            {/* Text overlay */}
-            <div className="absolute inset-0 flex flex-col justify-end p-6 bg-black/30 space-y-2">
-              {/* To */}
-              <div className="text-center">
-                <p className="text-white font-serif text-lg drop-shadow-lg">
-                  To: {formData.to}
-                </p>
-              </div>
-
-              {/* Message */}
-              <div className="text-center">
-                <p className="text-white font-serif text-base drop-shadow-lg whitespace-pre-wrap">
-                  {formData.message}
-                </p>
-              </div>
-
-              {/* From */}
-              <div className="text-center">
-                <p className="text-white font-serif text-lg drop-shadow-lg">
-                  From: {formData.from}
-                </p>
-              </div>
+          {(merging || !cardImageDataUrl) ? (
+            <div className="flex flex-col items-center justify-center gap-4 py-24">
+              <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-600 border-t-red-100" />
+              <p className="text-red-100 font-serif text-lg">กำลังสร้างการ์ด...</p>
             </div>
-          </div>
+          ) : (
+            <>
+              <h1 className="text-3xl font-serif font-bold text-red-100 text-center mb-6">
+                การ์ดของคุณ
+              </h1>
 
-          <div className="flex gap-4 justify-center mt-6">
-            <button
-              onClick={handleBackStep3}
-              className="px-6 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded font-serif"
-            >
-              กลับ
-            </button>
-            <button 
-              onClick={handleSave}
-              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-serif"
-            >
-              บันทึก
-            </button>
-            <button 
-              onClick={() => gtag.trackShare()}
-              className="px-6 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded font-serif"
-            >
-              แชร์ให้เพื่อน
-            </button>
-          </div>
+              {cardImageDataUrl && (
+                <div className="mb-6">
+                  <img 
+                    src={cardImageDataUrl}
+                    alt="Valentine Card"
+                    className="w-full rounded overflow-hidden border border-red-600"
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-4 justify-center mt-6">
+                <button
+                  onClick={handleBackStep3}
+                  className="px-6 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded font-serif"
+                >
+                  กลับ
+                </button>
+                <button 
+                  onClick={handleSave}
+                  disabled={!cardImageDataUrl}
+                  className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-stone-600 text-white rounded font-serif"
+                >
+                  บันทึก
+                </button>
+                <button 
+                  onClick={() => gtag.trackShare()}
+                  className="px-6 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded font-serif"
+                >
+                  แชร์ให้เพื่อน
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
         </>

@@ -53,12 +53,12 @@ export const trackWatchesSelected = () => {
   });
 };
 
-export const trackFragrancesSelected = () => {
-  event('fragrances_selected', {
+export const trackPerfumesSelected = () => {
+  event('perfumes_selected', {
     event_category: 'selection',
-    event_label: 'Cartier Fragrances',
-    product_name: 'Fragrances',
-    version: 'Fragrances',
+    event_label: 'Cartier Perfumes',
+    product_name: 'Perfumes',
+    version: 'Perfumes',
   });
 };
 
