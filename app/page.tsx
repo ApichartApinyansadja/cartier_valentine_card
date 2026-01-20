@@ -5,6 +5,13 @@ import HTMLFlipBook from "react-pageflip";
 import { useLiff } from "@/hooks/useLiff";
 import * as gtag from "@/lib/gtag";
 
+// Extend Window type for LIFF
+declare global {
+  interface Window {
+    liff: any;
+  }
+}
+
 const PageCover = React.forwardRef<HTMLDivElement, PropsWithChildren>(
   ({ children }, ref) => (
     <div
@@ -337,7 +344,52 @@ export default function Home() {
     }
   };
 
-  const handleBackStep3 = useCallback(() => setCurrentStep(2), []);
+  const handleShare = async () => {
+    gtag.trackShare();
+    
+    try {
+      if (!cardImageDataUrl) {
+        alert('รูปยังไม่พร้อม กรุณารอสักครู่');
+        return;
+      }
+
+      // Check if LIFF is available
+      if (typeof window !== 'undefined' && window.liff && window.liff.isInClient()) {
+        try {
+          // Use shareTargetPicker - select multiple friends and share
+          const result = await window.liff.shareTargetPicker([
+            {
+              type: 'image',
+              originalContentUrl: cardImageDataUrl,
+              previewImageUrl: cardImageDataUrl,
+            },
+          ], {
+            isMultiple: true,
+          });
+          
+          if (result) {
+            console.log('✅ Image shared successfully to', result.length, 'contacts');
+            alert('แชร์รูปสำเร็จแล้ว! 🎉');
+          } else {
+            console.log('User cancelled share');
+          }
+        } catch (error: any) {
+          console.error('❌ LIFF shareTargetPicker error:', error);
+          alert('ไม่สามารถแชร์ผ่าน LINE ได้ กรุณาลองใหม่อีกครั้ง');
+        }
+      } else {
+        alert('กรุณาเปิดแอปจาก LINE เพื่อแชร์ให้เพื่อน');
+      }
+    } catch (error) {
+      console.error('❌ Error sharing:', error);
+      alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+    }
+  };
+
+  const handleBackStep3 = useCallback(() => {
+    setCardImageDataUrl(''); // Clear old image to prevent flickering
+    setCurrentStep(2);
+  }, []);
 
   const handleSave = async () => {
     // Track download event
@@ -707,8 +759,8 @@ export default function Home() {
                   บันทึก
                 </button>
                 <button 
-                  onClick={() => gtag.trackShare()}
-                  className="px-6 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded font-serif"
+                  onClick={handleShare}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-serif"
                 >
                   แชร์ให้เพื่อน
                 </button>
