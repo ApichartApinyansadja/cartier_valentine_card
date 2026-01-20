@@ -141,6 +141,16 @@ export default function Home() {
     }
   }, [profile]);
 
+  // Auto login if not logged in
+  React.useEffect(() => {
+    if (liffReady && typeof window !== 'undefined' && window.liff) {
+      if (!window.liff.isLoggedIn()) {
+        console.log('User not logged in, redirecting to LINE login...');
+        window.liff.login();
+      }
+    }
+  }, [liffReady]);
+
   // Minimum 3 second loading time
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -339,25 +349,50 @@ export default function Home() {
         return;
       }
 
-      const response = await fetch(cardImageDataUrl);
-      const blob = await response.blob();
-      
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'cartier-valentine-card.jpg';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      setTimeout(() => {
-        URL.revokeObjectURL(url);
-      }, 100);
-      
-      console.log('✅ Download triggered successfully');
+      // Check if LIFF is available
+      if (typeof window !== 'undefined' && window.liff) {
+        if (!window.liff.isLoggedIn()) {
+          alert('กรุณาเข้าสู่ระบบ LINE');
+          return;
+        }
+
+        try {
+          // Send image via LIFF sendMessages
+          await window.liff.sendMessages([
+            {
+              type: 'image',
+              originalContentUrl: cardImageDataUrl,
+              previewImageUrl: cardImageDataUrl,
+            },
+          ]);
+          
+          console.log('✅ Image sent successfully via LIFF');
+          alert('ส่งรูปสำเร็จแล้ว! กรุณาตรวจสอบใน LINE Chat');
+        } catch (error: any) {
+          console.error('❌ LIFF sendMessages error:', error);
+          
+          // Fallback to download
+          const link = document.createElement('a');
+          link.href = cardImageDataUrl;
+          link.download = 'cartier-valentine-card.jpg';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          alert('ไม่สามารถส่งผ่าน LINE ได้ ดาวน์โหลดรูปแล้วแชร์เองนะครับ 😊\n\n(ต้อง deploy ก่อนถึงจะส่งได้)');
+        }
+      } else {
+        // Not in LIFF - just download
+        const link = document.createElement('a');
+        link.href = cardImageDataUrl;
+        link.download = 'cartier-valentine-card.jpg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        alert('ดาวน์โหลดรูปเรียบร้อย คุณสามารถแชร์ต่อได้เลยครับ 😊');
+      }
     } catch (error) {
       console.error('❌ Error saving:', error);
-      alert('ไม่สามารถบันทึกรูปได้');
+      alert('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     }
   };
 
@@ -371,7 +406,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-stone-900 to-stone-800 py-6 px-4 flex flex-col items-center justify-center">
       {/* Loading Screen */}
-      {(!liffReady || !imagesLoaded || !coverFramesLoaded || minLoadingTime) && (
+      {(!liffReady || !imagesLoaded || !coverFramesLoaded || minLoadingTime || !profile) && (
         <div className="flex flex-col items-center justify-center h-screen gap-6">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-600 border-t-red-100" />
@@ -381,7 +416,7 @@ export default function Home() {
       )}
 
       {/* Main App */}
-      {liffReady && imagesLoaded && coverFramesLoaded && !minLoadingTime && (
+      {liffReady && imagesLoaded && coverFramesLoaded && !minLoadingTime && profile && (
         <>
           {/* Step 0: Welcome Screen */}
           {currentStep === 0 && (
@@ -464,7 +499,7 @@ export default function Home() {
               )}
             </div>
           )}
-
+        
       {/* Step 1: Product Selection */}
       {currentStep === 1 && (
         <>
