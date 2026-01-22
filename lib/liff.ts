@@ -4,15 +4,22 @@ export const LIFF_ID = process.env.NEXT_PUBLIC_LINE_LIFF_ID || process.env.NEXT_
 
 /**
  * Initialize LIFF
- * @returns Promise<boolean> - true if initialized successfully
+ * @returns Promise<{success: boolean, requiresLogin?: boolean}>
  */
-export const initializeLiff = async (): Promise<boolean> => {
+export const initializeLiff = async (): Promise<{success: boolean, requiresLogin?: boolean}> => {
   try {
     await liff.init({ liffId: LIFF_ID });
-    return true;
-  } catch (error) {
+    return { success: true };
+  } catch (error: any) {
     console.error('LIFF initialization failed', error);
-    return false;
+    const errorMsg = error?.message || error?.toString() || '';
+    
+    // Check if it's an authorization code expiration error
+    if (errorMsg.includes('authorization code expired') || errorMsg.includes('incompatible')) {
+      console.log('Authorization code expired or incompatible, will trigger login');
+      return { success: false, requiresLogin: true };
+    }
+    return { success: false, requiresLogin: false };
   }
 };
 

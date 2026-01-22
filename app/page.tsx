@@ -4,6 +4,7 @@ import React, { useRef, useState, useCallback, PropsWithChildren } from "react";
 import HTMLFlipBook from "react-pageflip";
 import { useLiff } from "@/hooks/useLiff";
 import * as gtag from "@/lib/gtag";
+import { useSearchParams } from "next/navigation";
 
 // Extend Window type for LIFF
 declare global {
@@ -34,91 +35,71 @@ interface PageProps extends PropsWithChildren {
 }
 
 const Page = React.forwardRef<HTMLDivElement, PageProps>(
-  ({ number, title, imageUrl, children }, ref) => (
+  ({ number, title, imageUrl }, ref) => (
     <div
       ref={ref}
-      className="bg-gradient-to-b from-red-50 to-red-50 h-full flex flex-col p-6"
+      className="relative w-full h-full bg-[#f8e9e2]"
     >
-      <div className="border-b-2 border-red-200 pb-2 mb-3">
-        <h3 className="text-sm font-serif font-bold text-stone-700 uppercase">
-          {title || `Page ${number}`}
-        </h3>
-      </div>
-      {imageUrl ? (
-        <img
-          src={imageUrl}
-          alt={`Page ${number}`}
-          className="w-48 h-48 rounded mb-3 object-cover border border-red-300 mx-auto"
-        />
-      ) : (
-        <div className="w-48 h-48 bg-gradient-to-r from-red-200 to-red-100 rounded mb-3 flex items-center justify-center border border-red-300 mx-auto">
-          <span className="text-red-600 text-xs font-serif">
-            Image {number}
-          </span>
-        </div>
-      )}
-      <div className="flex-1 overflow-y-auto text-stone-700 text-xs leading-relaxed">
-        {children}
-      </div>
-      <div className="text-center text-stone-400 text-xs pt-2 border-t border-red-200 mt-2">
-        {number}
+      <div className="absolute inset-0 flex items-center justify-center">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt={title || `Page ${number}`}
+            className="max-w-[70%] max-h-[70%] object-contain"
+          />
+        ) : (
+          <div className="w-52 h-52 bg-[#f1dcd1] rounded flex items-center justify-center">
+            <span className="text-red-600 text-xs font-serif text-center">
+              Image {number}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   )
 );
 Page.displayName = "Page";
 
+const assetPaths = (fileName: string) => ({
+  productImage: `/step1/${fileName}`,
+  messageBg: `/step2/${fileName}`,
+  cardImage: `/step3/${fileName}`,
+});
+
 const PAGES_DATA = [
   {
     title: "Cartier Rings",
-    imageUrl: "/products/ring.webp",
-    content: {
-      heading: "Timeless Elegance",
-      text: [
-        "Discover the iconic beauty of Cartier rings, masterpieces of craftsmanship and design.",
-        "Each ring tells a story of love, commitment, and exceptional artistry.",
-      ],
-    },
+    fileName: "ring.webp",
+    content: { heading: "", text: [] },
   },
   {
     title: "Cartier Bracelets",
-    imageUrl: "/products/bracelet.webp",
-    content: {
-      heading: "Luxury in Motion",
-      text: [
-        "Experience the sophistication of Cartier bracelets, where elegance meets everyday luxury.",
-        "Handcrafted with precision, each piece reflects our commitment to perfection.",
-      ],
-    },
+    fileName: "bracelet.webp",
+    content: { heading: "", text: [] },
   },
   {
     title: "Cartier Watches",
-    imageUrl: "/products/watche.webp",
-    content: {
-      heading: "Time in Perfection",
-      text: [
-        "Cartier watches combine technical innovation with timeless style and heritage.",
-        "A symbol of sophistication and a companion for life's most precious moments.",
-      ],
-    },
+    fileName: "watche.webp",
+    content: { heading: "", text: [] },
   },
   {
     title: "Cartier Perfumes",
-    imageUrl: "/products/perfume.webp",
-    content: {
-      heading: "Essence of Luxury",
-      text: [
-        "Cartier perfumes capture the essence of elegance in every spritz.",
-        "Discover scents that define moments, evoke emotions, and express your unique style.",
-      ],
-    },
+    fileName: "perfume.webp",
+    content: { heading: "", text: [] },
   },
-];
+].map((item) => ({
+  ...item,
+  ...assetPaths(item.fileName),
+}));
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const isDesignMode = (searchParams?.get("mode") || "").toLowerCase() === "design";
+
   const bookRef = useRef<any>(null);
   const [page, setPage] = useState(0);
   const [totalPage, setTotalPage] = useState(0);
+  const [productIndex, setProductIndex] = useState(1);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [coverFramesLoaded, setCoverFramesLoaded] = useState(false);
   const [minLoadingTime, setMinLoadingTime] = useState(true);
@@ -133,6 +114,7 @@ export default function Home() {
   });
   const [cardImageDataUrl, setCardImageDataUrl] = useState<string>("");
   const [merging, setMerging] = useState(false);
+  const [showBadWordModal, setShowBadWordModal] = useState(false);
 
   // Cover animation state
   const [hiddenFrames, setHiddenFrames] = useState<number[]>([]); // frames that are hidden
@@ -140,7 +122,7 @@ export default function Home() {
   const [coverAnimationDone, setCoverAnimationDone] = useState(false);
   const TOTAL_COVER_FRAMES = 59;
 
-  const { liffReady, profile, error: liffError } = useLiff();
+  const { liffReady, profile, error: liffError } = useLiff({ skipInit: isDesignMode });
 
   React.useEffect(() => {
     if (profile) {
@@ -150,13 +132,14 @@ export default function Home() {
 
   // Auto login if not logged in
   React.useEffect(() => {
+    if (isDesignMode) return;
     if (liffReady && typeof window !== 'undefined' && window.liff) {
       if (!window.liff.isLoggedIn()) {
         console.log('User not logged in, redirecting to LINE login...');
         window.liff.login();
       }
     }
-  }, [liffReady]);
+  }, [isDesignMode, liffReady]);
 
   // Minimum 3 second loading time
   React.useEffect(() => {
@@ -168,10 +151,19 @@ export default function Home() {
 
   // Preload all images
   React.useEffect(() => {
-    Promise.all(PAGES_DATA.map(p => {
-      const img = new Image();
-      img.src = p.imageUrl;
-      return new Promise(resolve => { img.onload = img.onerror = resolve; });
+    Promise.all(PAGES_DATA.flatMap(p => {
+      const productImg = new Image();
+      productImg.src = p.productImage;
+
+      const bgImg = new Image();
+      bgImg.src = p.messageBg;
+
+      const cardImg = new Image();
+      cardImg.src = p.cardImage;
+
+      return [productImg, bgImg, cardImg].map(img => new Promise(resolve => {
+        img.onload = img.onerror = resolve;
+      }));
     })).then(() => setImagesLoaded(true));
   }, []);
 
@@ -218,14 +210,19 @@ export default function Home() {
 
   const badWords = ["ไอ้","อี","มึง​","กู","ชั่ว","เลว","ควาย","เหี้ย","สัตว์","ไม่ดี","หยาบคาย","shit","damn","hell","fuck","bitch","ค*ย","ห*ี","แ*ตด","เย็*ด"];
 
-  const censorBadWords = useCallback((text: string): string => 
-    badWords.reduce((r, w) => r.replace(new RegExp(w, "gi"), "*".repeat(w.length)), text), []);
+  const containsBadWords = useCallback((text: string): boolean => {
+    return badWords.some(w => new RegExp(w, "gi").test(text));
+  }, []);
 
   const handleInit = () => {
     const pf = bookRef.current?.pageFlip();
     if (pf) {
       setTotalPage(pf.getPageCount());
-      setPage(pf.getCurrentPageIndex());
+      const current = pf.getCurrentPageIndex();
+      setPage(current);
+      if (current >= 1 && current <= PAGES_DATA.length) {
+        setProductIndex(current);
+      }
     }
   };
 
@@ -248,24 +245,26 @@ export default function Home() {
   };
 
   const handleConfirmStep1 = useCallback(() => {
-    if (page >= 1 && page <= 4) {
-      setSelectedProduct(page);
-      trackingMap[page]?.();
+    if (productIndex >= 1 && productIndex <= 4) {
+      setSelectedProduct(productIndex);
+      trackingMap[productIndex]?.();
       setCurrentStep(2);
     }
-  }, [page]);
+  }, [productIndex]);
 
   const handleBackStep2 = useCallback(() => setCurrentStep(1), []);
 
   const handleConfirmStep2 = () => {
     if (formData.to && formData.from && formData.message) {
-      const censoredData = {
-        to: censorBadWords(formData.to),
-        from: censorBadWords(formData.from),
-        message: censorBadWords(formData.message),
-      };
-      setFormData(censoredData);
-      
+      if (
+        containsBadWords(formData.to) ||
+        containsBadWords(formData.from) ||
+        containsBadWords(formData.message)
+      ) {
+        setShowBadWordModal(true);
+        return;
+      }
+
       // Track complete (user finished creating card)
       gtag.trackComplete();
       
@@ -280,47 +279,58 @@ export default function Home() {
   const mergeImageWithText = async () => {
     try {
       setMerging(true);
-      const imageUrl = getSelectedProductData()!.imageUrl!;
+      const imageUrl = getSelectedProductData()!.cardImage!;
       
       // Load the image
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
-        // Create canvas
+        // Create canvas - clean white card without border
         const canvas = document.createElement('canvas');
-        canvas.width = 400;
-        canvas.height = 400;
+        canvas.width = 500;
+        canvas.height = 700;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Draw image
-        ctx.drawImage(img, 0, 0, 400, 400);
-
-        // Draw semi-transparent overlay
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.fillRect(0, 0, 400, 400);
-
-        // Draw text
+        // Draw white background
         ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, 500, 700);
+
+        // Draw Cartier logo
+        ctx.fillStyle = '#2c2c2c';
+        ctx.font = 'italic 42px serif';
         ctx.textAlign = 'center';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 4;
+        ctx.fillText('Cartier', 250, 60);
 
-        // To - positioned at bottom area
-        ctx.font = 'bold 22px serif';
-        ctx.fillText(`To: ${formData.to}`, 200, 310);
+        // Draw product image
+        ctx.drawImage(img, 40, 90, 420, 420);
 
-        // Message - centered at bottom area with spacing
-        ctx.font = '18px serif';
-        const messageLines = formData.message.split('\n');
-        const messageStartY = 340;
+        // Draw text below image
+        ctx.fillStyle = '#2c2c2c';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+
+        // To / Message / From with balanced vertical spacing
+        const toY = 540;
+        const spacingToMsg = 50;
+        const lineHeight = 24;
+        const spacingMsgFrom = 50;
+
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText(`To. ${formData.to}`, 250, toY);
+
+        const messageLines = (formData.message || '').split('\n');
+        const messageStartY = toY + spacingToMsg;
+        const lastLineY = messageStartY + (messageLines.length - 1) * lineHeight;
+
+        ctx.font = '16px sans-serif';
         messageLines.forEach((line, idx) => {
-          ctx.fillText(line, 200, messageStartY + idx * 25);
+          ctx.fillText(line, 250, messageStartY + idx * lineHeight);
         });
 
-        // From - at very bottom
-        ctx.font = 'bold 22px serif';
-        ctx.fillText(`From: ${formData.from}`, 200, 375);
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText(`From. ${formData.from}`, 250, lastLineY + spacingMsgFrom);
 
         // Convert to JPEG
         const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
@@ -455,10 +465,44 @@ export default function Home() {
     return null;
   };
 
+  const selectedProductData = getSelectedProductData();
+
+  // Fullscreen background for step 2 on mobile
+  const pageBgStyle = currentStep === 2 && selectedProductData
+    ? {
+        backgroundImage: `linear-gradient(180deg, rgba(20,16,14,0.7), rgba(20,16,14,0.9)), url(${selectedProductData.messageBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }
+    : {};
+
+  const readyForMain = imagesLoaded && coverFramesLoaded && !minLoadingTime && (isDesignMode || (liffReady && profile));
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-stone-900 to-stone-800 py-6 px-4 flex flex-col items-center justify-center">
+    <div
+      className="min-h-screen bg-gradient-to-b from-stone-900 to-stone-800 py-6 px-4 flex flex-col items-center justify-center"
+      style={pageBgStyle}
+    >
+      {showBadWordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="relative w-80 max-w-sm bg-black border border-white/80 rounded shadow-2xl px-8 py-8 text-center">
+            <button
+              aria-label="Close"
+              onClick={() => setShowBadWordModal(false)}
+              className="absolute right-4 top-3 text-white hover:text-white/70 text-2xl"
+            >
+              ×
+            </button>
+            <h2 className="text-2xl font-serif font-bold mb-4 text-white">ขออภัย!</h2>
+            <p className="text-base leading-relaxed text-white font-serif">
+              ข้อความของคุณมีคำที่ไม่เหมาะสม<br />กรุณาพิมพ์ข้อความใหม่
+            </p>
+          </div>
+        </div>
+      )}
       {/* Loading Screen */}
-      {(!liffReady || !imagesLoaded || !coverFramesLoaded || minLoadingTime || !profile) && (
+      {!readyForMain && (
         <div className="flex flex-col items-center justify-center h-screen gap-6">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-600 border-t-red-100" />
@@ -468,7 +512,7 @@ export default function Home() {
       )}
 
       {/* Main App */}
-      {liffReady && imagesLoaded && coverFramesLoaded && !minLoadingTime && profile && (
+      {readyForMain && (
         <>
           {/* Step 0: Welcome Screen */}
           {currentStep === 0 && (
@@ -588,7 +632,13 @@ export default function Home() {
               showPageCorners
               disableFlipByClick={false}
               onInit={handleInit}
-              onFlip={(e: any) => setPage(e.data)}
+              onFlip={(e: any) => {
+                const nextPage = e.data;
+                setPage(nextPage);
+                if (nextPage >= 1 && nextPage <= PAGES_DATA.length) {
+                  setProductIndex(nextPage);
+                }
+              }}
               className="shadow-2xl"
             >
               <PageCover>CARTIER</PageCover>
@@ -598,7 +648,7 @@ export default function Home() {
                   key={idx}
                   number={idx + 1}
                   title={pageData.title}
-                  imageUrl={pageData.imageUrl}
+                  imageUrl={pageData.productImage}
                 >
                   <h4 className="font-bold mb-2">{pageData.content.heading}</h4>
                   {pageData.content.text.map((p, i) => (
@@ -635,7 +685,7 @@ export default function Home() {
 
           <button
             onClick={handleConfirmStep1}
-            className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-serif"
+            className="px-10 py-2.5 font-serif text-base text-white border border-white/80 rounded-sm bg-stone-900/40 hover:bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition"
           >
             ตกลง
           </button>
@@ -643,48 +693,52 @@ export default function Home() {
       )}
 
       {/* Step 2: Form Input */}
-      {currentStep === 2 && getSelectedProductData() && (
-        <div className="w-full max-w-md">
-          <h1 className="text-3xl font-serif font-bold text-red-100 text-center mb-6">
-            กรอกข้อมูลของคุณ
-          </h1>
+      {currentStep === 2 && selectedProductData && (
+        <div className="w-full max-w-md flex flex-col justify-between min-h-[520px]">
+          <div className="px-7 pt-8 pb-4">
+            <h1 className="font-serif font-bold text-white text-center mb-6">
+              โปรดใส่ข้อความของคุณด้านล่าง
+            </h1>
 
-          <div className="bg-stone-800/50 border border-red-600 rounded p-6 space-y-4">
-            <div>
-              <label className="block text-red-100 font-serif text-sm mb-2">
-                To:
-              </label>
-              <input
-                type="text"
-                value={formData.to}
-                onChange={(e) =>
-                  setFormData({ ...formData, to: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-stone-900 border border-red-600 text-red-100 rounded font-serif text-sm"
-              />
-            </div>
+            <div className="space-y-6 text-white">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-base font-serif text-white">
+                  <span className="font-semibold">To</span>
+                  <span className="opacity-80">:</span>
+                  <input
+                    type="text"
+                    placeholder="ใส่ชื่อผู้รับ"
+                    value={formData.to}
+                    onChange={(e) => setFormData({ ...formData, to: e.target.value })}
+                    className="flex-1 bg-transparent text-white placeholder-white/70 border-b border-white/70 pb-2 focus:outline-none"
+                  />
+                </div>
+              </div>
 
-            <div>
-              <label className="block text-red-100 font-serif text-sm mb-2">
-                From:
-              </label>
-              <input
-                type="text"
-                value={formData.from}
-                onChange={(e) =>
-                  setFormData({ ...formData, from: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-stone-900 border border-red-600 text-red-100 rounded font-serif text-sm"
-              />
-            </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-base font-serif text-white">
+                  <span className="font-semibold">From</span>
+                  <span className="opacity-80">:</span>
+                  <input
+                    type="text"
+                    placeholder="ใส่ชื่อผู้ส่ง"
+                    value={formData.from}
+                    onChange={(e) => setFormData({ ...formData, from: e.target.value })}
+                    className="flex-1 bg-transparent text-white placeholder-white/70 border-b border-white/70 pb-2 focus:outline-none"
+                  />
+                </div>
+              </div>
 
-            <div>
-              <label className="block text-red-100 font-serif text-sm mb-2">
-                Message (limit 50 ตัวอักษร):
-              </label>
-              <div className="relative">
-                <textarea
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <span>Message</span>
+                  <span className="opacity-80">:</span>
+                  <span className="text-xs font-medium opacity-80">( จำกัดข้อความไม่เกิน 50 ตัวอักษร )</span>
+                </div>
+                <input
+                  type="text"
                   value={formData.message}
+                  placeholder="พิมพ์ข้อความของคุณที่นี่"
                   onChange={(e) => {
                     const text = e.target.value;
                     if (text.length <= 50) {
@@ -692,29 +746,30 @@ export default function Home() {
                     }
                   }}
                   maxLength={50}
-                  className="w-full px-3 bg-stone-900 border border-red-600 text-red-100 rounded font-serif text-sm h-24 resize-none text-center flex items-center justify-center"
-                  style={{ paddingTop: "2.5rem", paddingBottom: "2.5rem" }}
+                  className="w-full bg-transparent text-white placeholder-white/70 border-b border-white/70 pb-2 pt-3 focus:outline-none font-serif text-base text-center"
                 />
-              </div>
-              <div className="text-amber-100 text-xs mt-1">
-                {formData.message.length}/50
+                <div className="text-amber-100 text-xs">
+                  {formData.message.length}/50
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-4 justify-center mt-6">
+          <div className="flex gap-4 justify-center px-7 pb-7">
             <button
               onClick={handleBackStep2}
-              className="px-6 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded font-serif"
+              className="px-6 py-2.5 font-serif text-base text-white border border-white/80 rounded-sm bg-stone-900/40 hover:bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
             >
-              กลับ
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M15 18l-6-6 6-6"/><path d="M21 12H9"/></svg>
+              <span>กลับ</span>
             </button>
             <button
               onClick={handleConfirmStep2}
               disabled={!formData.to || !formData.from || !formData.message}
-              className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-stone-600 disabled:cursor-not-allowed text-white rounded font-serif"
+              className="px-6 py-2.5 font-serif text-base text-white border border-white/80 rounded-sm bg-stone-900/40 hover:bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              ยืนยัน
+              <span>เรียบร้อย</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M9 18l6-6-6-6"/><path d="M3 12h12"/></svg>
             </button>
           </div>
         </div>
@@ -730,39 +785,38 @@ export default function Home() {
             </div>
           ) : (
             <>
-              <h1 className="text-3xl font-serif font-bold text-red-100 text-center mb-6">
-                การ์ดของคุณ
-              </h1>
-
               {cardImageDataUrl && (
                 <div className="mb-6">
                   <img 
                     src={cardImageDataUrl}
                     alt="Valentine Card"
-                    className="w-full rounded overflow-hidden border border-red-600"
+                    className="w-full rounded overflow-hidden"
                   />
                 </div>
               )}
 
-              <div className="flex gap-4 justify-center mt-6">
+              <div className="flex gap-3 justify-center mt-6 text-base font-serif">
                 <button
                   onClick={handleBackStep3}
-                  className="px-6 py-2 bg-stone-600 hover:bg-stone-700 text-white rounded font-serif"
+                  className="px-8 py-2.5 bg-stone-900/40 hover:bg-white/10 text-white rounded-sm border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
                 >
-                  กลับ
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M15 18l-6-6 6-6"/></svg>
+                  <span>กลับ</span>
                 </button>
                 <button 
                   onClick={handleSave}
                   disabled={!cardImageDataUrl}
-                  className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-stone-600 text-white rounded font-serif"
+                  className="px-8 py-2.5 bg-stone-900/40 hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-sm border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
                 >
-                  บันทึก
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>บันทึก</span>
                 </button>
                 <button 
                   onClick={handleShare}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-serif"
+                  className="px-8 py-2.5 bg-stone-900/40 hover:bg-white/10 text-white rounded-sm border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
                 >
-                  แชร์ให้เพื่อน
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98"/><path d="M15.41 6.51 8.59 10.49"/></svg>
+                  <span>แชร์</span>
                 </button>
               </div>
             </>
