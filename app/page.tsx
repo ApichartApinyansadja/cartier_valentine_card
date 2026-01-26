@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useCallback, PropsWithChildren } from "react";
+import React, { useRef, useState, useCallback, PropsWithChildren, Suspense } from "react";
 import HTMLFlipBook from "react-pageflip";
 import { useLiff } from "@/hooks/useLiff";
 import * as gtag from "@/lib/gtag";
@@ -92,7 +92,7 @@ const PAGES_DATA = [
   ...assetPaths(item.fileName),
 }));
 
-export default function Home() {
+function HomeContent() {
   const searchParams = useSearchParams();
   const isDesignMode = (searchParams?.get("mode") || "").toLowerCase() === "design";
 
@@ -826,5 +826,20 @@ export default function Home() {
         </>
       )}
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center h-screen gap-6">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-600 border-t-red-100" />
+          <p className="text-red-100 font-serif text-lg">Loading...</p>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
