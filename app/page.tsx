@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useCallback, PropsWithChildren, Suspense } from "react";
+import React, { useRef, useState, useCallback, PropsWithChildren, Suspense, useEffect, useLayoutEffect } from "react";
 import HTMLFlipBook from "react-pageflip";
 import { useLiff } from "@/hooks/useLiff";
 import * as gtag from "@/lib/gtag";
@@ -18,9 +18,9 @@ const PageCover = React.forwardRef<HTMLDivElement, PropsWithChildren>(
     <div
       ref={ref}
       data-density="hard"
-      className="bg-gradient-to-b from-red-50 to-red-50 h-full flex flex-col justify-center items-center p-8"
+      className="!w-full !h-full bg-[#f8e9e2] flex items-center justify-center overflow-hidden"
     >
-      <h2 className="text-5xl font-serif font-bold text-stone-800 text-center">
+      <h2 className="text-5xl font-NotoSansThai font-bold text-stone-800 text-center">
         {children}
       </h2>
     </div>
@@ -36,23 +36,17 @@ interface PageProps extends PropsWithChildren {
 
 const Page = React.forwardRef<HTMLDivElement, PageProps>(
   ({ number, title, imageUrl }, ref) => (
-    <div
+   <div
       ref={ref}
-      className="relative w-full h-full bg-[#f8e9e2]"
+      className="page-root !w-full !h-full "
     >
-      <div className="absolute inset-0 flex items-center justify-center">
-        {imageUrl ? (
+      <div className="relative w-full h-full flex items-center justify-center">
+        {imageUrl && (
           <img
             src={imageUrl}
             alt={title || `Page ${number}`}
-            className="max-w-[70%] max-h-[70%] object-contain"
+            className="w-full h-full object-fill"
           />
-        ) : (
-          <div className="w-52 h-52 bg-[#f1dcd1] rounded flex items-center justify-center">
-            <span className="text-red-600 text-xs font-serif text-center">
-              Image {number}
-            </span>
-          </div>
         )}
       </div>
     </div>
@@ -288,22 +282,22 @@ function HomeContent() {
         // Create canvas - clean white card without border
         const canvas = document.createElement('canvas');
         canvas.width = 500;
-        canvas.height = 700;
+        canvas.height = 840;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
         // Draw white background
         ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, 500, 700);
+        ctx.fillRect(0, 0, 500, 840);
 
         // Draw Cartier logo
         ctx.fillStyle = '#2c2c2c';
-        ctx.font = 'italic 42px serif';
+        ctx.font = 'italic 52px serif';
         ctx.textAlign = 'center';
         ctx.fillText('Cartier', 250, 60);
 
         // Draw product image
-        ctx.drawImage(img, 40, 90, 420, 420);
+        ctx.drawImage(img, 40, 90, 420, 560);
 
         // Draw text below image
         ctx.fillStyle = '#2c2c2c';
@@ -312,24 +306,24 @@ function HomeContent() {
         ctx.shadowBlur = 0;
 
         // To / Message / From with balanced vertical spacing
-        const toY = 540;
+        const toY = 700;
         const spacingToMsg = 50;
         const lineHeight = 24;
         const spacingMsgFrom = 50;
 
-        ctx.font = 'bold 18px sans-serif';
+        ctx.font = 'bold 20px font-NotoSansThai';
         ctx.fillText(`To. ${formData.to}`, 250, toY);
 
         const messageLines = (formData.message || '').split('\n');
         const messageStartY = toY + spacingToMsg;
         const lastLineY = messageStartY + (messageLines.length - 1) * lineHeight;
 
-        ctx.font = '16px sans-serif';
+        ctx.font = '22px font-NotoSansThai';
         messageLines.forEach((line, idx) => {
           ctx.fillText(line, 250, messageStartY + idx * lineHeight);
         });
 
-        ctx.font = 'bold 18px sans-serif';
+        ctx.font = 'bold 20px font-NotoSansThai';
         ctx.fillText(`From. ${formData.from}`, 250, lastLineY + spacingMsgFrom);
 
         // Convert to JPEG
@@ -479,23 +473,114 @@ function HomeContent() {
 
   const readyForMain = imagesLoaded && coverFramesLoaded && !minLoadingTime && (isDesignMode || (liffReady && profile));
 
+
+  const [showSecond, setShowSecond] = useState(false);
+  useEffect(() => {
+    const img = new Image();
+    img.src = "/step1/select_bg.webp";
+    
+    const timer = setTimeout(() => setShowSecond(true), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const [actualSize, setActualSize] = useState({ width: 0, height: 0 });
+  const [isReady, setIsReady] = useState(false);
+  const containerRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const updateSize = () => {
+      let finalW = 0;
+      let finalH = 0;
+
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        if (rect.width >= 448) {
+          finalW = 448; 
+        } else {
+          finalW = Math.ceil(rect.width); 
+        }    
+        finalH = Math.ceil(rect.height);
+      }
+
+      if (finalW === 0 || finalH === 0) {
+        const vh = window.innerHeight;
+        const vw = window.innerWidth;
+        finalH = Math.ceil(vh * 0.70); 
+        
+        if(window.innerWidth >= 375 && window.innerWidth < 448 ) {
+          if((window.innerHeight >= 750)){
+            finalW = Math.ceil(vw * 1);
+          } else {
+            finalW = Math.ceil(vw * 0.89);
+          }
+        } else if((window.innerWidth >= 400 && window.innerWidth < 448 )) {
+          if((window.innerHeight >= 800)){
+            finalW = Math.ceil(vw * 1);
+          } else {
+            finalW = Math.ceil(vw * 0.89);
+          }
+        } else if((window.innerWidth >= 448) && window.innerWidth < 768 ) {
+            finalW = 448;
+        } else if((window.innerWidth >= 768) && window.innerWidth < 820) {
+            finalW = Math.ceil(600 * 0.89);
+        } else if((window.innerWidth >= 820) && window.innerWidth < 1025) {
+            finalW = Math.ceil(600 * 0.98);
+        } else if((window.innerWidth >= 1536)) {
+            finalW = Math.ceil(500 * 0.89);
+        }
+        else {
+          finalW = Math.ceil(600 * 0.89); 
+        }
+      }
+
+      if (finalW > 0 && finalH > 0) {
+        setActualSize({ width: finalW, height: finalH });
+
+        document.documentElement.style.setProperty('--book-w', `${finalW}px`);
+        document.documentElement.style.setProperty('--book-h', `${finalH}px`);
+        
+        setIsReady(true);
+        console.log("📏 [Box Green Size]:", finalW, "x", finalH);
+      }
+    };
+
+    const observer = new ResizeObserver(() => {
+      window.requestAnimationFrame(updateSize);
+    });
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    updateSize();
+
+    const timer = setTimeout(updateSize, 150);
+    window.addEventListener('resize', updateSize);
+    
+    return () => {
+      observer.disconnect();
+      clearTimeout(timer);
+      window.removeEventListener('resize', updateSize);
+    };
+  }, [showSecond]); 
+
   return (
     <div
-      className="min-h-screen bg-gradient-to-b from-stone-900 to-stone-800 py-6 px-4 flex flex-col items-center justify-center"
+      className="min-h-screen flex flex-col items-center justify-center"
       style={pageBgStyle}
     >
       {showBadWordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="relative w-80 max-w-sm bg-black border border-white/80 rounded shadow-2xl px-8 py-8 text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="relative w-80 max-w-sm border border-white/50 shadow-2xl px-8 py-8 text-center bg-black/10">
             <button
               aria-label="Close"
               onClick={() => setShowBadWordModal(false)}
-              className="absolute right-4 top-3 text-white hover:text-white/70 text-2xl"
+              className="absolute right-3 top-3 text-white hover:text-white/70 text-2xl"
             >
-              ×
+              <img src="/icons/close.webp" className="w-[14px] h-auto" alt="" />
             </button>
-            <h2 className="text-2xl font-serif font-bold mb-4 text-white">ขออภัย!</h2>
-            <p className="text-base leading-relaxed text-white font-serif">
+            <h2 className="text-2xl font-NotoSansThai font-bold mb-4 text-white">ขออภัย!</h2>
+            <p className="text-base leading-relaxed text-white font-NotoSansThai">
               ข้อความของคุณมีคำที่ไม่เหมาะสม<br />กรุณาพิมพ์ข้อความใหม่
             </p>
           </div>
@@ -506,7 +591,7 @@ function HomeContent() {
         <div className="flex flex-col items-center justify-center h-screen gap-6">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-600 border-t-red-100" />
-            <p className="text-red-100 font-serif text-lg">Loading...</p>
+            <p className="text-red-100 font-NotoSansThai text-lg">Loading...</p>
           </div>
         </div>
       )}
@@ -516,7 +601,7 @@ function HomeContent() {
         <>
           {/* Step 0: Welcome Screen */}
           {currentStep === 0 && (
-            <div className="flex flex-col items-center justify-center h-screen w-full max-w-md relative">
+            <div className="flex flex-col items-center justify-center h-screen w-full relative">
               {/* Stack all frames - always rendered, hidden by opacity */}
               <div className="relative w-full h-full">
                 <img src="/cover/1.webp" className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 59, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(1) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
@@ -583,11 +668,11 @@ function HomeContent() {
               {/* Button overlay - only show when not playing */}
               {!isPlayingCover && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ zIndex: 100 }}>
-                  <h1 className="text-5xl font-serif font-bold text-red-100 text-center mb-6">CARTIER</h1>
-                  <h2 className="text-3xl font-serif font-bold text-red-100 text-center mb-12">Valentine's Card</h2>
+                  <h1 className="text-5xl font-NotoSansThai font-bold text-red-100 text-center mb-6">CARTIER</h1>
+                  <h2 className="text-3xl font-NotoSansThai font-bold text-red-100 text-center mb-12">Valentine's Card</h2>
                   <button
                     onClick={handleStartCoverAnimation}
-                    className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded font-serif text-lg"
+                    className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded font-NotoSansThai text-lg"
                   >
                     คลิกเพื่อรังสรรค์การ์ดอวยพร
                   </button>
@@ -599,141 +684,179 @@ function HomeContent() {
       {/* Step 1: Product Selection */}
       {currentStep === 1 && (
         <>
-          <div className="mb-4">
-            <h1 className="text-3xl font-serif font-bold text-red-100 text-center">
-              CARTIER V-DAY
-            </h1>
-            <div className="h-1 w-32 bg-gradient-to-r from-red-400 to-red-300 mx-auto mt-2" />
-          </div>
-
-          <div className="flex-1 flex items-center justify-center mb-4">
-            <HTMLFlipBook
-              ref={bookRef}
-              width={400}
-              height={500}
-              size="fixed"
-              minWidth={300}
-              maxWidth={600}
-              minHeight={400}
-              maxHeight={700}
-              showCover={false}
-              flippingTime={1000}
-              usePortrait
-              mobileScrollSupport={false}
-              drawShadow
-              clickEventForward
-              useMouseEvents={false}
-              swipeDistance={0}
-              maxShadowOpacity={0.5}
-              startZIndex={1}
-              autoSize={false}
-              style={{}}
-              startPage={1}
-              showPageCorners
-              disableFlipByClick={false}
-              onInit={handleInit}
-              onFlip={(e: any) => {
-                const nextPage = e.data;
-                setPage(nextPage);
-                if (nextPage >= 1 && nextPage <= PAGES_DATA.length) {
-                  setProductIndex(nextPage);
-                }
-              }}
-              className="shadow-2xl"
-            >
-              <PageCover>CARTIER</PageCover>
-
-              {PAGES_DATA.map((pageData, idx) => (
-                <Page
-                  key={idx}
-                  number={idx + 1}
-                  title={pageData.title}
-                  imageUrl={pageData.productImage}
+            <div className={`relative w-full h-screen overflow-hidden flex items-center justify-center bg-black transition-opacity duration-[3000ms] ease-in-out`}>
+              <div className={`relative aspect-[1080/1920] min-w-full min-h-full shrink-0 bg-[url('/cover/59.webp')] bg-top_center  bg-no-repeat bg-[length:100%_100%] transition-opacity duration-[2000ms]`}>
+                
+                <div className="cartier-logo w-[40%] max-w-[200px] mx-auto mt-[7.5%]">
+                  <img src="/step1/cartier_logo.webp" alt="Cartier Logo" />
+                </div>
+                <div ref={containerRef} className="green-box absolute top-[13.5%] left-[5%] md:left-[6%] w-[89%] md:w-[100%] h-[70%] flex items-center justify-center"
                 >
-                  <h4 className="font-bold mb-2">{pageData.content.heading}</h4>
-                  {pageData.content.text.map((p, i) => (
-                    <p key={i} className="mb-2">
-                      {p}
-                    </p>
-                  ))}
-                </Page>
-              ))}
+                  <div className={`w-full h-full flex items-center justify-center transition-opacity duration-[3000ms] ease-in-out ${isReady && showSecond ? 'opacity-100' : 'opacity-0'}`}>
+                  {isReady ? (
+                    <>
+                      <div style={{  width: `${actualSize.width}px`, height: `${actualSize.height}px`, position: 'relative', }}>
+                        <HTMLFlipBook
+                          ref={bookRef}
+                          width={actualSize.width}
+                          height={actualSize.height}
+                          size="stretch"
+                          minWidth={actualSize.width}
+                          minHeight={actualSize.height}
+                          maxWidth={actualSize.width}
+                          maxHeight={actualSize.height}
+                          showCover={false}
+                          flippingTime={800}
+                          startPage={1}
+                          usePortrait={true}
+                          drawShadow={false} 
+                          autoSize={true}
+                          useMouseEvents={false}
+                          clickEventForward={false}
+                          swipeDistance={30} 
+                          showPageCorners={false} 
+                          onInit={handleInit}
+                          onFlip={(e: any) => {
+                            setPage(e.data);
+                            if (e.data >= 1 && e.data <= PAGES_DATA.length) {
+                              setProductIndex(e.data);
+                            }
+                          }}
+                          className="stf__parent" 
+                          style={{ backgroundColor: 'transparent' }}
+                        >
+                          <PageCover>CARTIER</PageCover>
 
-              <PageCover>THE END</PageCover>
-            </HTMLFlipBook>
-          </div>
+                          {PAGES_DATA.map((pageData, idx) => (
+                            <Page
+                              key={idx}
+                              number={idx + 1}
+                              title={pageData.title}
+                              imageUrl={pageData.productImage}
+                            >
+                              <h4 className="font-bold mb-2">{pageData.content.heading}</h4>
+                              {pageData.content.text.map((p, i) => (
+                                <p key={i} className="mb-2 text-sm">
+                                  {p}
+                                </p>
+                              ))}
+                            </Page>
+                          ))}
 
-          <div className="flex gap-4 items-center justify-center mb-4">
-            <button
-              onClick={() => bookRef.current?.pageFlip().flipPrev("top")}
-              hidden={page <= 1}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-stone-600 text-white rounded font-serif text-sm"
-            >
-              ← Previous
-            </button>
-            <span className="text-red-100 font-serif min-w-20 text-center">
-              [{page} of {totalPage - 2}]
-            </span>
-            <button
-              onClick={() => bookRef.current?.pageFlip().flipNext("top")}
-              hidden={page >= totalPage - 2}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-stone-600 text-white rounded font-serif text-sm"
-            >
-              Next →
-            </button>
-          </div>
+                          <PageCover>THE END</PageCover>
+                        </HTMLFlipBook>
+                    
+                        <div className="absolute w-full top-[10%] mb-4 abolute z-50 font-NotoSansThai">
+                            <p className="text-center text-black font-bold text-[20px]">เลือกชิ้นงาน</p>
+                            <p className="text-center text-black font-bold text-[20px]">เพื่อเป็นตัวแทนแห่งความรัก</p>
+                        </div>
+                        
+                        <div className="absolute h-full w-full top-1/2 -translate-y-1/2  mb-4 abolute z-50">
+                          <button
+                            onClick={() => bookRef.current?.pageFlip().flipPrev("top")}
+                            hidden={page <= 1}
+                            className="px-4 py-2 bg-transparent hover:bg-white/20 disabled:bg-transparent text-white rounded text-sm h-full absolute left-0 min-w-[100px]"
+                          >
+                            <img src="/step1/arrow-left.webp" className="w-[30%] mx-auto" alt="" />
+                          </button>
+                          {/* <span className="text-red-100 font-NotoSansThai min-w-20 text-center">
+                            [{page} of {totalPage - 2}]
+                          </span> */}
+                          
+                          <button
+                            onClick={() => bookRef.current?.pageFlip().flipNext("top")}
+                            hidden={page >= totalPage - 2}
+                            className="px-4 py-2 bg-transparent hover:bg-white/20 disabled:bg-transparent text-white rounded text-sm h-full absolute right-0 min-w-[100px]"
+                          >
+                            <img src="/step1/arrow-right.webp" className="w-[30%] mx-auto" alt="" />
+                          </button>
+                        </div>
+                      </div>
+                    
 
-          <button
-            onClick={handleConfirmStep1}
-            className="px-10 py-2.5 font-serif text-base text-white border border-white/80 rounded-sm bg-stone-900/40 hover:bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition"
-          >
-            ตกลง
-          </button>
+                    <nav className="flex justify-center gap-[0.75rem] mt-4 absolute bottom-[15%] w-full">
+                      {Array.from({ length: totalPage - 2 }).map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => bookRef.current.pageFlip().flip(i + 1)}
+                          className={`
+                            w-2 h-2 rotate-45 transition-all duration-300 transform
+                            ${page === i + 1 
+                              ? 'bg-[#c10016] scale-100 shadow-[0_0_8px_rgba(193,0,22,0.4)]' 
+                              : 'bg-[#a48f72] hover:bg-[#c10016]/50'
+                            }
+                          `}
+                          aria-label={`Go to page ${i + 1}`}
+                        />
+                      ))}
+                    </nav>
+                    </>
+                  ) 
+                  :
+                  (
+                    <div className="text-white">Loading Book...</div> 
+                  )}
+                  </div>
+                  </div>
+                </div>
+              </div>
+            
+            <div className="flex flex-col items-center mb-4 absolute bottom-[3.5%] z-50 ">
+                <button
+                  onClick={handleConfirmStep1}
+                  className="px-10 py-2.5 font-NotoSansThai text-base text-white border border-white/80 bg-stone-900/40 hover:bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition"
+                >
+                  ตกลง
+                </button>
+            </div>
         </>
       )}
 
       {/* Step 2: Form Input */}
       {currentStep === 2 && selectedProductData && (
-        <div className="w-full max-w-md flex flex-col justify-between min-h-[520px]">
+        <div className="w-full max-w-md  flex flex-col justify-between min-h-[520px]">
+            <div className="cartier-logo w-[40%] md:w-[35%] max-w-[200px] mx-auto absolute left-1/2 -translate-x-1/2 top-[7.5%] z-50">
+              <img src="/step1/cartier_logo.webp" alt="Cartier Logo" />
+            </div>
           <div className="px-7 pt-8 pb-4">
-            <h1 className="font-serif font-bold text-white text-center mb-6">
+            <h1 className="font-bold text-white text-center mb-12 mt-8 font-NotoSansThai text-[20px]">
               โปรดใส่ข้อความของคุณด้านล่าง
             </h1>
 
             <div className="space-y-6 text-white">
               <div className="space-y-1">
-                <div className="flex items-center gap-2 text-base font-serif text-white">
-                  <span className="font-semibold">To</span>
-                  <span className="opacity-80">:</span>
+                <div className="flex gap-2 text-base font-NotoSansThai text-white border-b border-white/70 pb-2 items-baseline">
+                  <span className="font-semibold w-[22.5%] font-BrilliantCutPro">To</span>
+                  <span className="opacity-80 mr-[5%]">:</span>
                   <input
                     type="text"
                     placeholder="ใส่ชื่อผู้รับ"
                     value={formData.to}
                     onChange={(e) => setFormData({ ...formData, to: e.target.value })}
-                    className="flex-1 bg-transparent text-white placeholder-white/70 border-b border-white/70 pb-2 focus:outline-none"
+                    className="flex-1 bg-transparent text-white placeholder-white/70 focus:outline-none font-NotoSansThai"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <div className="flex items-center gap-2 text-base font-serif text-white">
-                  <span className="font-semibold">From</span>
-                  <span className="opacity-80">:</span>
+                <div className="flex gap-2 text-base font-NotoSansThai text-white border-b border-white/70 pb-2 items-baseline">
+                  <span className="font-semibold w-[22.5%] font-BrilliantCutPro">From</span>
+                  <span className="opacity-80 mr-[5%]">:</span>
                   <input
                     type="text"
                     placeholder="ใส่ชื่อผู้ส่ง"
                     value={formData.from}
                     onChange={(e) => setFormData({ ...formData, from: e.target.value })}
-                    className="flex-1 bg-transparent text-white placeholder-white/70 border-b border-white/70 pb-2 focus:outline-none"
+                    className="flex-1 bg-transparent text-white placeholder-white/70 focus:outline-none font-NotoSansThai"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <span>Message</span>
-                  <span className="opacity-80">:</span>
-                  <span className="text-xs font-medium opacity-80">( จำกัดข้อความไม่เกิน 50 ตัวอักษร )</span>
+                <div className="flex gap-2 text-sm font-semibold border-b border-white/70 pb-2 items-baseline">
+                  <span className="font-semibold w-[22.5%] font-BrilliantCutPro">Message</span>
+                  <span className="opacity-80 mr-[5%]">:</span>
+                  <span className="text-white font-medium opacity-80 font-NotoSansThai">( จำกัดข้อความไม่เกิน 50 ตัวอักษร )</span>
                 </div>
                 <input
                   type="text"
@@ -746,30 +869,32 @@ function HomeContent() {
                     }
                   }}
                   maxLength={50}
-                  className="w-full bg-transparent text-white placeholder-white/70 border-b border-white/70 pb-2 pt-3 focus:outline-none font-serif text-base text-center"
+                  className="w-full bg-transparent text-white placeholder-white/70 focus:outline-none font-NotoSansThai text-base text-center mt-4 border-b border-white/70 pb-2 items-baseline font-NotoSansThai"
                 />
-                <div className="text-amber-100 text-xs">
-                  {formData.message.length}/50
+                <div className="text-amber-100 text-xs text-white font-NotoSansThai">
+                  ( {formData.message.length} / 50 )
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-4 justify-center px-7 pb-7">
+          <div className="flex gap-4 justify-around absolute bottom-[7.5%] w-full left-1/2 -translate-x-1/2 max-w-md ">
             <button
               onClick={handleBackStep2}
-              className="px-6 py-2.5 font-serif text-base text-white border border-white/80 rounded-sm bg-stone-900/40 hover:bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
+              className="w-[35%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M15 18l-6-6 6-6"/><path d="M21 12H9"/></svg>
-              <span>กลับ</span>
+              {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="opacity-90"><path d="M15 18l-6-6 6-6"/></svg> */}
+              <img src="/icons/prev.webp" className="h-[20px] mr-2" alt="" />
+              <span className="font-NotoSansThai mr-4">กลับ</span>
             </button>
             <button
               onClick={handleConfirmStep2}
               disabled={!formData.to || !formData.from || !formData.message}
-              className="px-6 py-2.5 font-serif text-base text-white border border-white/80 rounded-sm bg-stone-900/40 hover:bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-[35%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span>เรียบร้อย</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M9 18l6-6-6-6"/><path d="M3 12h12"/></svg>
+              <span className="font-NotoSansThai ml-4">เรียบร้อย</span>
+              <img src="/icons/next.webp" className="h-[20px] ml-2" alt="" />
+              {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M9 18l6-6-6-6"/></svg> */}
             </button>
           </div>
         </div>
@@ -777,51 +902,58 @@ function HomeContent() {
 
       {/* Step 3: Display Result (merged image) */}
       {currentStep === 3 && getSelectedProductData() && (
-        <div className="w-full max-w-md">
-          {(merging || !cardImageDataUrl) ? (
-            <div className="flex flex-col items-center justify-center gap-4 py-24">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-600 border-t-red-100" />
-              <p className="text-red-100 font-serif text-lg">กำลังสร้างการ์ด...</p>
-            </div>
-          ) : (
-            <>
-              {cardImageDataUrl && (
-                <div className="mb-6">
-                  <img 
-                    src={cardImageDataUrl}
-                    alt="Valentine Card"
-                    className="w-full rounded overflow-hidden"
-                  />
+        <>
+          <div className="bg-[url('/step3/step-3-bg.webp')] absolute flex justify-center items-center top-0 bottom-0 left-0 right-0 bg-cover bg-center mx-auto max-w-[500px]">
+            <div className="w-11/12 mx-auto max-w-md  relative h-full flex flex-col justify-center">
+              {(merging || !cardImageDataUrl) ? (
+                <div className="flex flex-col items-center justify-center gap-4 py-24">
+                  <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-600 border-t-red-100" />
+                  <p className="text-red-100 font-NotoSansThai text-lg">กำลังสร้างการ์ด...</p>
                 </div>
-              )}
+              ) : (
+                <>
+                  {cardImageDataUrl && (
+                    <div className="mb-6 h-[70%] max-h-[720px]">
+                      <img 
+                        src={cardImageDataUrl}
+                        alt="Valentine Card"
+                        className="w-auto h-full rounded overflow-hidden mx-auto"
+                      />
+                    </div>
+                  )}
 
-              <div className="flex gap-3 justify-center mt-6 text-base font-serif">
-                <button
-                  onClick={handleBackStep3}
-                  className="px-8 py-2.5 bg-stone-900/40 hover:bg-white/10 text-white rounded-sm border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M15 18l-6-6 6-6"/></svg>
-                  <span>กลับ</span>
-                </button>
-                <button 
-                  onClick={handleSave}
-                  disabled={!cardImageDataUrl}
-                  className="px-8 py-2.5 bg-stone-900/40 hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-sm border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  <span>บันทึก</span>
-                </button>
-                <button 
-                  onClick={handleShare}
-                  className="px-8 py-2.5 bg-stone-900/40 hover:bg-white/10 text-white rounded-sm border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98"/><path d="M15.41 6.51 8.59 10.49"/></svg>
-                  <span>แชร์</span>
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+                  <div className="flex gap-3 justify-center mt-6 text-base absolute bottom-[7.5%] w-full">
+                    <button
+                      onClick={handleBackStep3}
+                      className="w-[30%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
+                    >
+                      {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M15 18l-6-6 6-6"/></svg> */}
+                      <img src="/icons/prev.webp" className="h-[20px] mr-2" alt="" />
+                      <span className="font-NotoSansThai">กลับ</span>
+                    </button>
+                    <button 
+                      onClick={handleSave}
+                      disabled={!cardImageDataUrl}
+                      className="w-[30%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
+                    >
+                      {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> */}
+                      <img src="/icons/save.webp" className="h-[20px] mr-2" alt="" />
+                      <span className="font-NotoSansThai">บันทึก</span>
+                    </button>
+                    <button 
+                      onClick={handleShare}
+                      className="w-[30%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
+                    >
+                      {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98"/><path d="M15.41 6.51 8.59 10.49"/></svg> */}
+                      <img src="/icons/share.webp" className="h-[20px] mr-2" alt="" />
+                      <span className="font-NotoSansThai">แชร์</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </>
       )}
         </>
       )}
@@ -835,7 +967,7 @@ export default function Home() {
       <div className="flex flex-col items-center justify-center h-screen gap-6">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-600 border-t-red-100" />
-          <p className="text-red-100 font-serif text-lg">Loading...</p>
+          <p className="text-red-100 font-NotoSansThai text-lg">Loading...</p>
         </div>
       </div>
     }>
