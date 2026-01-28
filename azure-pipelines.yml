@@ -86,9 +86,9 @@ steps:
       IDP_CLIENT_SECRET: $(IDP_CLIENT_SECRET)
       LINE_CHANNEL_ACCESS_TOKEN: $(LINE_CHANNEL_ACCESS_TOKEN)
   
-  # 4. Run lint (optional - non-blocking)
-  - script: npm run lint || true
-    displayName: 'Lint code (warnings only)'
+  # 4. Run lint (optional)
+  - script: npm run lint
+    displayName: 'Lint code'
 
   # 5. สร้าง compressed node_modules สำหรับ Oryx
   - script: |
