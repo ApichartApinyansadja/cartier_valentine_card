@@ -95,6 +95,12 @@ steps:
       echo "Compressed node_modules created"
     displayName: 'Compress node_modules for Azure Oryx'
 
+  # 5.5. Copy ecosystem.config.js to root for PM2
+  - script: |
+      cp ecosystem.config.js $(System.DefaultWorkingDirectory)/
+      echo "ecosystem.config.js copied to deployment root"
+    displayName: 'Copy ecosystem.config.js'
+
   # 6. Archive build + node_modules.tar.gz
   - task: ArchiveFiles@2
     displayName: 'Archive build + compressed node_modules'
