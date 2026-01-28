@@ -900,8 +900,8 @@ function HomeContent() {
                     }
                   }}
                   maxLength={50}
-                  rows={2}
-                  className="w-full bg-transparent text-white placeholder-white/70 focus:outline-none font-NotoSansThai text-base text-center mt-4 border border-white/70 p-2 items-baseline font-NotoSansThai resize-none overflow-hidden"
+                  className="w-full bg-transparent text-white placeholder-white/70 focus:outline-none font-NotoSansThai text-base text-center mt-4 border border-white/70 resize-none overflow-hidden"
+                  style={{ height: '60px', padding: '15px 8px', lineHeight: '1.5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 />
                 <div className="text-amber-100 text-xs text-white font-NotoSansThai">
                   ( {formData.message.length} / 50 )
