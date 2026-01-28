@@ -1,12 +1,12 @@
 {
-  "name": "temp-next",
-  "version": "0.1.0",
+  "name": "cartier-valentine-card",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "next lint"
   },
   "dependencies": {
     "@line/liff": "^2.27.3",
