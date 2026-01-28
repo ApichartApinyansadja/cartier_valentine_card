@@ -51,6 +51,7 @@ const Page = React.forwardRef<HTMLDivElement, PageProps>(
     >
       <div className="relative w-full h-full flex items-center justify-center">
         {imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={imageUrl}
             alt={title || `Page ${number}`}
@@ -212,11 +213,10 @@ function HomeContent() {
     setIsPlayingCover(true);
   };
 
-  const badWords = ["ไอ้","อี","มึง​","กู","ชั่ว","เลว","ควาย","เหี้ย","สัตว์","ไม่ดี","หยาบคาย","shit","damn","hell","fuck","bitch","ค*ย","ห*ี","แ*ตด","เย็*ด"];
-
   const containsBadWords = useCallback((text: string): boolean => {
+    const badWords = ["ไอ้","อี","มึง​","กู","ชั่ว","เลว","ควาย","เหี้ย","สัตว์","ไม่ดี","หยาบคาย","shit","damn","hell","fuck","bitch","ค*ย","ห*ี","แ*ตด","เย็*ด"];
     return badWords.some(w => new RegExp(w, "gi").test(text));
-  }, [badWords]);
+  }, []);
 
   const handleInit = () => {
     const pf = bookRef.current?.pageFlip();
@@ -241,20 +241,19 @@ function HomeContent() {
     }
   }, [currentStep, selectedProduct]);
 
-  const trackingMap: Record<number, () => void> = {
-    1: gtag.trackRingsSelected,
-    2: gtag.trackBraceletsSelected,
-    3: gtag.trackWatchesSelected,
-    4: gtag.trackPerfumesSelected,
-  };
-
   const handleConfirmStep1 = useCallback(() => {
+    const trackingMap: Record<number, () => void> = {
+      1: gtag.trackRingsSelected,
+      2: gtag.trackBraceletsSelected,
+      3: gtag.trackWatchesSelected,
+      4: gtag.trackPerfumesSelected,
+    };
     if (productIndex >= 1 && productIndex <= 4) {
       setSelectedProduct(productIndex);
       trackingMap[productIndex]?.();
       setCurrentStep(2);
     }
-  }, [productIndex, trackingMap]);
+  }, [productIndex]);
 
   const handleBackStep2 = useCallback(() => setCurrentStep(1), []);
 
@@ -587,6 +586,7 @@ function HomeContent() {
               onClick={() => setShowBadWordModal(false)}
               className="absolute right-3 top-3 text-white hover:text-white/70 text-2xl"
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={getAssetUrl("/icons/close.webp")} className="w-[14px] h-auto" alt="Close" />
             </button>
             <h2 className="text-2xl font-NotoSansThai font-bold mb-4 text-white">ขออภัย!</h2>
@@ -613,6 +613,7 @@ function HomeContent() {
           {currentStep === 0 && (
             <div className="flex flex-col items-center justify-center h-screen w-full relative">
               {/* Stack all frames - always rendered, hidden by opacity */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <div className="relative w-full h-full">
                 <img src={getAssetUrl("/cover/1.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 59, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(1) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
                 <img src={getAssetUrl("/cover/2.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 58, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(2) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
@@ -771,6 +772,7 @@ function HomeContent() {
                             hidden={page <= 1}
                             className="px-4 py-2 bg-transparent hover:bg-white/20 disabled:bg-transparent text-white rounded text-sm h-full absolute left-0 min-w-[100px]"
                           >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={getAssetUrl("/step1/arrow-left.webp")} className="w-[30%] mx-auto" alt="" />
                           </button>
                           {/* <span className="text-red-100 font-NotoSansThai min-w-20 text-center">
@@ -782,6 +784,7 @@ function HomeContent() {
                             hidden={page >= totalPage - 2}
                             className="px-4 py-2 bg-transparent hover:bg-white/20 disabled:bg-transparent text-white rounded text-sm h-full absolute right-0 min-w-[100px]"
                           >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={getAssetUrl("/step1/arrow-right.webp")} className="w-[30%] mx-auto" alt="" />
                           </button>
                         </div>
@@ -897,7 +900,7 @@ function HomeContent() {
               onClick={handleBackStep2}
               className="w-[35%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
             >
-              {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="opacity-90"><path d="M15 18l-6-6 6-6"/></svg> */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={getAssetUrl("/icons/prev.webp")} className="h-[20px] mr-2" alt="" />
               <span className="font-NotoSansThai mr-4">กลับ</span>
             </button>
@@ -907,6 +910,7 @@ function HomeContent() {
               className="w-[35%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <span className="font-NotoSansThai ml-4">เรียบร้อย</span>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={getAssetUrl("/icons/next.webp")} className="h-[20px] ml-2" alt="" />
               {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M9 18l6-6-6-6"/></svg> */}
             </button>
@@ -941,7 +945,7 @@ function HomeContent() {
                       onClick={handleBackStep3}
                       className="w-[30%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
                     >
-                      {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M15 18l-6-6 6-6"/></svg> */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={getAssetUrl("/icons/prev.webp")} className="h-[20px] mr-2" alt="" />
                       <span className="font-NotoSansThai">กลับ</span>
                     </button>
@@ -950,7 +954,7 @@ function HomeContent() {
                       disabled={!cardImageDataUrl}
                       className="w-[30%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
                     >
-                      {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={getAssetUrl("/icons/save.webp")} className="h-[20px] mr-2" alt="" />
                       <span className="font-NotoSansThai">บันทึก</span>
                     </button>
@@ -958,7 +962,7 @@ function HomeContent() {
                       onClick={handleShare}
                       className="w-[30%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
                     >
-                      {/* <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-90"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98"/><path d="M15.41 6.51 8.59 10.49"/></svg> */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={getAssetUrl("/icons/share.webp")} className="h-[20px] mr-2" alt="" />
                       <span className="font-NotoSansThai">แชร์</span>
                     </button>
