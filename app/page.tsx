@@ -613,7 +613,7 @@ function HomeContent() {
           {currentStep === 0 && (
             <div className="flex flex-col items-center justify-center h-screen w-full relative">
               {/* Stack all frames - always rendered, hidden by opacity */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {/* eslint-disable @next/next/no-img-element */}
               <div className="relative w-full h-full">
                 <img src={getAssetUrl("/cover/1.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 59, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(1) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
                 <img src={getAssetUrl("/cover/2.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 58, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(2) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
@@ -675,12 +675,13 @@ function HomeContent() {
                 <img src={getAssetUrl("/cover/58.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 2, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(58) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
                 <img src={getAssetUrl("/cover/59.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 1, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(59) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
               </div>
+              {/* eslint-enable @next/next/no-img-element */}
 
               {/* Button overlay - only show when not playing */}
               {!isPlayingCover && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ zIndex: 100 }}>
                   <h1 className="text-5xl font-NotoSansThai font-bold text-red-100 text-center mb-6">CARTIER</h1>
-                  <h2 className="text-3xl font-NotoSansThai font-bold text-red-100 text-center mb-12">Valentine's Card</h2>
+                  <h2 className="text-3xl font-NotoSansThai font-bold text-red-100 text-center mb-12">Valentine&apos;s Card</h2>
                   <button
                     onClick={handleStartCoverAnimation}
                     className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded font-NotoSansThai text-lg"
@@ -699,6 +700,7 @@ function HomeContent() {
               <div className="relative aspect-[1080/1920] min-w-full min-h-full shrink-0 bg-top_center bg-no-repeat transition-opacity duration-[2000ms]" style={{ backgroundImage: `url(${getAssetUrl("/cover/59.webp")})`, backgroundSize: '100% 100%' }}>
                 
                 <div className="cartier-logo w-[40%] max-w-[200px] mx-auto mt-[7.5%]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={getAssetUrl("/step1/cartier_logo.webp")} alt="Cartier Logo" />
                 </div>
                 <div ref={containerRef} className="green-box absolute top-[13.5%] left-[5%] md:left-[6%] w-[89%] md:w-[100%] h-[70%] flex items-center justify-center"
@@ -731,7 +733,7 @@ function HomeContent() {
                           mobileScrollSupport={true}
                           disableFlipByClick={false}
                           onInit={handleInit}
-                          onFlip={(e: any) => {
+                          onFlip={(e: { data: number }) => {
                             setPage(e.data);
                             if (e.data >= 1 && e.data <= PAGES_DATA.length) {
                               setProductIndex(e.data);
@@ -833,6 +835,7 @@ function HomeContent() {
       {currentStep === 2 && selectedProductData && (
         <div className="w-full max-w-md  flex flex-col justify-between min-h-[520px]">
             <div className="cartier-logo w-[40%] md:w-[35%] max-w-[200px] mx-auto absolute left-1/2 -translate-x-1/2 top-[7.5%] z-50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={getAssetUrl("/step1/cartier_logo.webp")} alt="Cartier Logo" />
             </div>
           <div className="px-7 pt-8 pb-4">
@@ -932,6 +935,7 @@ function HomeContent() {
                 <>
                   {cardImageDataUrl && (
                     <div className="mb-6 h-[70%] max-h-[720px]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img 
                         src={cardImageDataUrl}
                         alt="Valentine Card"
