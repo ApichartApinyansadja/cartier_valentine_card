@@ -115,9 +115,9 @@ function HomeContent() {
   const [currentStep, setCurrentStep] = useState<0 | 1 | 2 | 3>(0);
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const [formData, setFormData] = useState({
-    to: "You",
-    from: "Me",
-    message: "Happy Valentine's Day",
+    to: "You คุณ",
+    from: "Me ผม",
+    message: "Happy Valentine's Day สุขสันต์วันวาเลนไทน์",
   });
   const [cardImageDataUrl, setCardImageDataUrl] = useState<string>("");
   const [merging, setMerging] = useState(false);
@@ -284,6 +284,16 @@ function HomeContent() {
       setMerging(true);
       const imageUrl = getSelectedProductData()!.cardImage!;
       
+      // Wait for fonts to be ready before rendering
+      if (typeof document !== 'undefined' && 'fonts' in document) {
+        try {
+          await (document.fonts as FontFaceSet).ready;
+          console.log('✅ Fonts loaded successfully');
+        } catch (e) {
+          console.warn('⚠️ Font loading warning:', e);
+        }
+      }
+      
       // Load the image
       const img = new Image();
       img.crossOrigin = "anonymous";
@@ -320,19 +330,19 @@ function HomeContent() {
         const lineHeight = 24;
         const spacingMsgFrom = 50;
 
-        ctx.font = 'bold 20px font-NotoSansThai';
+        ctx.font = "20px 'NotoSansThai'";
         ctx.fillText(`To. ${formData.to}`, 250, toY);
 
         const messageLines = (formData.message || '').split('\n');
         const messageStartY = toY + spacingToMsg;
         const lastLineY = messageStartY + (messageLines.length - 1) * lineHeight;
 
-        ctx.font = '22px font-NotoSansThai';
+        ctx.font = "22px 'NotoSansThai'";
         messageLines.forEach((line, idx) => {
           ctx.fillText(line, 250, messageStartY + idx * lineHeight);
         });
 
-        ctx.font = 'bold 20px font-NotoSansThai';
+        ctx.font = "20px 'NotoSansThai'";
         ctx.fillText(`From. ${formData.from}`, 250, lastLineY + spacingMsgFrom);
 
         // Convert to JPEG
@@ -878,18 +888,20 @@ function HomeContent() {
                   <span className="opacity-80 mr-[5%]">:</span>
                   <span className="text-white font-medium opacity-80 font-NotoSansThai">( จำกัดข้อความไม่เกิน 50 ตัวอักษร )</span>
                 </div>
-                <input
-                  type="text"
+                <textarea
                   value={formData.message}
                   placeholder="พิมพ์ข้อความของคุณที่นี่"
                   onChange={(e) => {
                     const text = e.target.value;
-                    if (text.length <= 50) {
+                    // จำกัดให้ 50 ตัวอักษรและ 2 บรรทัดเท่านั้น
+                    const lineCount = (text.match(/\n/g) || []).length + 1;
+                    if (text.length <= 50 && lineCount <= 2) {
                       setFormData({ ...formData, message: text });
                     }
                   }}
                   maxLength={50}
-                  className="w-full bg-transparent text-white placeholder-white/70 focus:outline-none font-NotoSansThai text-base text-center mt-4 border-b border-white/70 pb-2 items-baseline font-NotoSansThai"
+                  rows={2}
+                  className="w-full bg-transparent text-white placeholder-white/70 focus:outline-none font-NotoSansThai text-base text-center mt-4 border border-white/70 p-2 items-baseline font-NotoSansThai resize-none overflow-hidden"
                 />
                 <div className="text-amber-100 text-xs text-white font-NotoSansThai">
                   ( {formData.message.length} / 50 )
