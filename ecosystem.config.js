@@ -1,12 +1,12 @@
 module.exports = {
   apps: [
     {
-      name: 'se-liff-service',
+      name: 'cartier-valentine-card',
       script: 'npm',
       args: 'start',
       cwd: '/home/site/wwwroot',
       instances: 1,
-      exec_mode: 'cluster',
+      exec_mode: 'fork',
       max_memory_restart: '500M',
       error_file: '/home/site/wwwroot/logs/err.log',
       out_file: '/home/site/wwwroot/logs/out.log',
