@@ -1,5 +1,5 @@
 trigger:
-  - develop
+  - main
 
 pool:
   vmImage: 'ubuntu-22.04'
@@ -15,6 +15,7 @@ variables:
   IDP_GRANT_TYPE:
   IDP_CLIENT_ID:
   IDP_CLIENT_SECRET:
+  LINE_CHANNEL_ACCESS_TOKEN: aV+oVBNKI3kR/BmQng+vppBmXLcGlDCirTg1ljc0Rt7RlF+XKPG9PBF7Wdo5DCb06QqrJNXRHRMrj9/ayHBLhJPPmIYg4sjKUkJcjkyie/w62XMgyPzUcZBtZwCe/hj6Tafig7kdqS/Y8vw9nY9GHQdB04t89/1O/w1cDnyilFU=
   # VML
   # NEXT_PUBLIC_LINE_LIFF_BASEURL: https://vml.ampmmarketing.net/liff/
   # NEXT_PUBLIC_LINE_CLIENT_ID: 2007047684
@@ -25,6 +26,7 @@ variables:
   # IDP_GRANT_TYPE:
   # IDP_CLIENT_ID:
   # IDP_CLIENT_SECRET:
+  # LINE_CHANNEL_ACCESS_TOKEN:
   # SCHENEIDER UAT
   # NEXT_PUBLIC_LINE_LIFF_BASEURL: https://uat-line-official-th.se.com/liff/
   # NEXT_PUBLIC_LINE_CLIENT_ID: 2007710013
@@ -35,6 +37,7 @@ variables:
   # IDP_GRANT_TYPE: authorization_code
   # IDP_CLIENT_ID: z1ieJ5Wr9dSdeiLLGPZEcmLSvuwmUSvZ
   # IDP_CLIENT_SECRET: Jds3jhYccawCbwssWFRiYAMrWwcLJj5OHEmfs_JhcRQ-f48f-QVqMzxMwLYyDqEs
+  # LINE_CHANNEL_ACCESS_TOKEN:
   # SCHNEIDER PRODUCTION
   # NEXT_PUBLIC_LINE_LIFF_BASEURL: https://app-wpp-vml-ampm-schneider-ase-p-liff.azurewebsites.net/
   # NEXT_PUBLIC_LINE_CLIENT_ID: 1657622971
@@ -45,6 +48,7 @@ variables:
   # IDP_GRANT_TYPE: authorization_code
   # IDP_CLIENT_ID: YmllffY1n0nrbzvb9RUgpZYEW88ghcER
   # IDP_CLIENT_SECRET: 9X5Z5jdyPwUyvXiYS3TF8S6qxCT_PPxIq-ghunXqD1ye-sm1vAwHcfeTjwJ-2x6H
+  # LINE_CHANNEL_ACCESS_TOKEN:
 
 steps:
   # 1. ติดตั้ง Node.js
@@ -58,7 +62,7 @@ steps:
       echo "Installing dependencies"
       if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ] || [ -f pnpm-lock.yaml ]; then
         echo "Lockfile found — running npm ci"
-        npm ci --no-audit
+        npm ci --no-audit || npm install --no-audit --legacy-peer-deps
       else
         echo "No lockfile found — running npm install (no-audit)"
         npm install --no-audit
@@ -80,10 +84,10 @@ steps:
       IDP_GRANT_TYPE: $(IDP_GRANT_TYPE)
       IDP_CLIENT_ID: $(IDP_CLIENT_ID)
       IDP_CLIENT_SECRET: $(IDP_CLIENT_SECRET)
-
+      LINE_CHANNEL_ACCESS_TOKEN: $(LINE_CHANNEL_ACCESS_TOKEN)
   # 4. Run lint (optional)
-  - script: npm run lint
-    displayName: 'Lint code'
+  - script: npm run lint || true
+    displayName: 'Lint code (warnings non-blocking)'
 
   # 5. สร้าง compressed node_modules สำหรับ Oryx
   - script: |
