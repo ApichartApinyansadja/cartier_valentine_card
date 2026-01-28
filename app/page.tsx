@@ -485,7 +485,7 @@ function HomeContent() {
 
   const [actualSize, setActualSize] = useState({ width: 0, height: 0 });
   const [isReady, setIsReady] = useState(false);
-  const containerRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const updateSize = () => {
@@ -714,7 +714,11 @@ function HomeContent() {
                           useMouseEvents={false}
                           clickEventForward={false}
                           swipeDistance={30} 
-                          showPageCorners={false} 
+                          showPageCorners={false}
+                          startZIndex={0}
+                          maxShadowOpacity={0.2}
+                          mobileScrollSupport={true}
+                          disableFlipByClick={false}
                           onInit={handleInit}
                           onFlip={(e: any) => {
                             setPage(e.data);
