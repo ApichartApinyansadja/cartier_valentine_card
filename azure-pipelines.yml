@@ -85,13 +85,20 @@ steps:
       IDP_CLIENT_ID: $(IDP_CLIENT_ID)
       IDP_CLIENT_SECRET: $(IDP_CLIENT_SECRET)
       LINE_CHANNEL_ACCESS_TOKEN: $(LINE_CHANNEL_ACCESS_TOKEN)
+  
   # 4. Run lint (optional)
-  - script: npm run lint || true
-    displayName: 'Lint code (warnings non-blocking)'
+  - script: npm run lint
+    displayName: 'Lint code'
 
-  # 5. Archive .next + node_modules + public + ecosystem.config.js
+  # 5. สร้าง compressed node_modules สำหรับ Oryx
+  - script: |
+      tar -czf node_modules.tar.gz node_modules
+      echo "Compressed node_modules created"
+    displayName: 'Compress node_modules for Azure Oryx'
+
+  # 6. Archive build + node_modules.tar.gz
   - task: ArchiveFiles@2
-    displayName: 'Archive build artifacts for deployment'
+    displayName: 'Archive build + compressed node_modules'
     inputs:
       rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
       includeRootFolder: false
@@ -99,7 +106,7 @@ steps:
       archiveFile: '$(Build.ArtifactStagingDirectory)/nextjs.zip'
       replaceExistingArchive: true
 
-  # 6. Publish artifact
+  # 7. Publish artifact
   - task: PublishBuildArtifacts@1
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)'
