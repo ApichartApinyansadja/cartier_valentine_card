@@ -15,6 +15,16 @@ const eslintConfig = [
     'next/typescript',
     'plugin:prettier/recommended', // เพิ่มบรรทัดนี้
   ),
+  {
+    ignores: [
+      '**/node_modules/**',
+      '**/.next/**',
+      '**/out/**',
+      '**/dist/**',
+      '**/.turbopack/**',
+      '**/build/**',
+    ],
+  },
 ];
 
 export default eslintConfig;
