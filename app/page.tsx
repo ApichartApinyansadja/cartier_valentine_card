@@ -8,9 +8,17 @@ import { useSearchParams } from "next/navigation";
 import { assetPrefixFullUrl } from '@/lib/setUrl';
 
 // Extend Window type for LIFF
+interface LiffType {
+  login: () => void;
+  isLoggedIn: () => boolean;
+  isInClient: () => boolean;
+  shareTargetPicker: (messages: Array<{type: string; originalContentUrl: string; previewImageUrl: string}>, options?: {isMultiple?: boolean}) => Promise<{length: number} | null>;
+  sendMessages: (messages: Array<{type: string; originalContentUrl: string; previewImageUrl: string}>) => Promise<void>;
+}
+
 declare global {
   interface Window {
-    liff: any;
+    liff: LiffType;
   }
 }
 
@@ -94,7 +102,7 @@ function HomeContent() {
   // Helper to get asset URL with prefix
   const getAssetUrl = (path: string) => assetPrefixFullUrl(path);
 
-  const bookRef = useRef<any>(null);
+  const bookRef = useRef<{pageFlip: () => {getPageCount: () => number; getCurrentPageIndex: () => number; turnToPage: (page: number) => void; flipPrev: (direction: string) => void; flipNext: (direction: string) => void; flip: (page: number) => void}} | null>(null);
   const [page, setPage] = useState(0);
   const [totalPage, setTotalPage] = useState(0);
   const [productIndex, setProductIndex] = useState(1);
@@ -117,10 +125,9 @@ function HomeContent() {
   // Cover animation state
   const [hiddenFrames, setHiddenFrames] = useState<number[]>([]); // frames that are hidden
   const [isPlayingCover, setIsPlayingCover] = useState(false);
-  const [coverAnimationDone, setCoverAnimationDone] = useState(false);
   const TOTAL_COVER_FRAMES = 59;
 
-  const { liffReady, profile, error: liffError } = useLiff({ skipInit: isDesignMode });
+  const { liffReady, profile } = useLiff({ skipInit: isDesignMode });
 
   React.useEffect(() => {
     if (profile) {
@@ -171,7 +178,6 @@ function HomeContent() {
     
     // If all frames except last are hidden, animation is done
     if (hiddenFrames.length >= TOTAL_COVER_FRAMES - 1) {
-      setCoverAnimationDone(true);
       setIsPlayingCover(false);
       setCurrentStep(1);
       return;
@@ -210,7 +216,7 @@ function HomeContent() {
 
   const containsBadWords = useCallback((text: string): boolean => {
     return badWords.some(w => new RegExp(w, "gi").test(text));
-  }, []);
+  }, [badWords]);
 
   const handleInit = () => {
     const pf = bookRef.current?.pageFlip();
@@ -248,7 +254,7 @@ function HomeContent() {
       trackingMap[productIndex]?.();
       setCurrentStep(2);
     }
-  }, [productIndex]);
+  }, [productIndex, trackingMap]);
 
   const handleBackStep2 = useCallback(() => setCurrentStep(1), []);
 
@@ -381,7 +387,7 @@ function HomeContent() {
           } else {
             console.log('User cancelled share');
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('❌ LIFF shareTargetPicker error:', error);
           alert('ไม่สามารถแชร์ผ่าน LINE ได้ กรุณาลองใหม่อีกครั้ง');
         }
@@ -428,7 +434,7 @@ function HomeContent() {
           
           console.log('✅ Image sent successfully via LIFF');
           alert('ส่งรูปสำเร็จแล้ว! กรุณาตรวจสอบใน LINE Chat');
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('❌ LIFF sendMessages error:', error);
           
           // Fallback to download
@@ -581,7 +587,7 @@ function HomeContent() {
               onClick={() => setShowBadWordModal(false)}
               className="absolute right-3 top-3 text-white hover:text-white/70 text-2xl"
             >
-              <img src={getAssetUrl("/icons/close.webp")} className="w-[14px] h-auto" alt="" />
+              <img src={getAssetUrl("/icons/close.webp")} className="w-[14px] h-auto" alt="Close" />
             </button>
             <h2 className="text-2xl font-NotoSansThai font-bold mb-4 text-white">ขออภัย!</h2>
             <p className="text-base leading-relaxed text-white font-NotoSansThai">
@@ -608,65 +614,65 @@ function HomeContent() {
             <div className="flex flex-col items-center justify-center h-screen w-full relative">
               {/* Stack all frames - always rendered, hidden by opacity */}
               <div className="relative w-full h-full">
-                <img src={getAssetUrl("/cover/1.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 59, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(1) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/2.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 58, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(2) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/3.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 57, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(3) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/4.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 56, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(4) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/5.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 55, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(5) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/6.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 54, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(6) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/7.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 53, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(7) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/8.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 52, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(8) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/9.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 51, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(9) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/10.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 50, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(10) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/11.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 49, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(11) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/12.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 48, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(12) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/13.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 47, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(13) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/14.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 46, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(14) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/15.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 45, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(15) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/16.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 44, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(16) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/17.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 43, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(17) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/18.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 42, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(18) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/19.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 41, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(19) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/20.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 40, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(20) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/21.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 39, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(21) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/22.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 38, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(22) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/23.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 37, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(23) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/24.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 36, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(24) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/25.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 35, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(25) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/26.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 34, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(26) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/27.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 33, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(27) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/28.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 32, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(28) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/29.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 31, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(29) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/30.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 30, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(30) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/31.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 29, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(31) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/32.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 28, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(32) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/33.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 27, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(33) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/34.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 26, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(34) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/35.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 25, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(35) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/36.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 24, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(36) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/37.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 23, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(37) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/38.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 22, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(38) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/39.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 21, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(39) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/40.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 20, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(40) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/41.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 19, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(41) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/42.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 18, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(42) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/43.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 17, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(43) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/44.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 16, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(44) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/45.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 15, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(45) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/46.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 14, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(46) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/47.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 13, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(47) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/48.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 12, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(48) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/49.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 11, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(49) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/50.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 10, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(50) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/51.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 9, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(51) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/52.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 8, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(52) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/53.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 7, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(53) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/54.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 6, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(54) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/55.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 5, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(55) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/56.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 4, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(56) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/57.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 3, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(57) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/58.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 2, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(58) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
-                <img src={getAssetUrl("/cover/59.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 1, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(59) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} />
+                <img src={getAssetUrl("/cover/1.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 59, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(1) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/2.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 58, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(2) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/3.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 57, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(3) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/4.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 56, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(4) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/5.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 55, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(5) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/6.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 54, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(6) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/7.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 53, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(7) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/8.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 52, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(8) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/9.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 51, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(9) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/10.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 50, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(10) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/11.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 49, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(11) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/12.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 48, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(12) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/13.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 47, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(13) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/14.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 46, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(14) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/15.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 45, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(15) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/16.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 44, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(16) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/17.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 43, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(17) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/18.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 42, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(18) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/19.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 41, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(19) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/20.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 40, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(20) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/21.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 39, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(21) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/22.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 38, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(22) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/23.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 37, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(23) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/24.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 36, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(24) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/25.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 35, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(25) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/26.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 34, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(26) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/27.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 33, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(27) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/28.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 32, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(28) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/29.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 31, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(29) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/30.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 30, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(30) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/31.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 29, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(31) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/32.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 28, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(32) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/33.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 27, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(33) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/34.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 26, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(34) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/35.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 25, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(35) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/36.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 24, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(36) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/37.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 23, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(37) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/38.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 22, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(38) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/39.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 21, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(39) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/40.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 20, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(40) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/41.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 19, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(41) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/42.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 18, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(42) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/43.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 17, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(43) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/44.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 16, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(44) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/45.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 15, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(45) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/46.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 14, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(46) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/47.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 13, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(47) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/48.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 12, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(48) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/49.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 11, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(49) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/50.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 10, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(50) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/51.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 9, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(51) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/52.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 8, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(52) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/53.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 7, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(53) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/54.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 6, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(54) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/55.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 5, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(55) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/56.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 4, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(56) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/57.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 3, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(57) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/58.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 2, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(58) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
+                <img src={getAssetUrl("/cover/59.webp")} className="absolute inset-0 w-full h-full object-cover" style={{ zIndex: 1, opacity: !isPlayingCover ? 0 : (hiddenFrames.includes(59) ? 0 : 1), pointerEvents: 'none', transform: 'translateZ(0)', willChange: 'opacity' }} alt="" />
               </div>
 
               {/* Button overlay - only show when not playing */}
@@ -786,7 +792,7 @@ function HomeContent() {
                       {Array.from({ length: totalPage - 2 }).map((_, i) => (
                         <button
                           key={i}
-                          onClick={() => bookRef.current.pageFlip().flip(i + 1)}
+                          onClick={() => bookRef.current?.pageFlip().flip(i + 1)}
                           className={`
                             w-2 h-2 rotate-45 transition-all duration-300 transform
                             ${page === i + 1 
