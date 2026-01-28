@@ -89,21 +89,9 @@ steps:
   - script: npm run lint || true
     displayName: 'Lint code (warnings non-blocking)'
 
-  # 5. สร้าง compressed node_modules สำหรับ Oryx
-  - script: |
-      tar -czf node_modules.tar.gz node_modules
-      echo "Compressed node_modules created"
-    displayName: 'Compress node_modules for Azure Oryx'
-
-  # 5.5. Copy ecosystem.config.js to root for PM2
-  - script: |
-      cp ecosystem.config.js $(System.DefaultWorkingDirectory)/
-      echo "ecosystem.config.js copied to deployment root"
-    displayName: 'Copy ecosystem.config.js'
-
-  # 6. Archive build + node_modules.tar.gz
+  # 5. Archive .next + node_modules + public + ecosystem.config.js
   - task: ArchiveFiles@2
-    displayName: 'Archive build + compressed node_modules'
+    displayName: 'Archive build artifacts for deployment'
     inputs:
       rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
       includeRootFolder: false
@@ -111,7 +99,7 @@ steps:
       archiveFile: '$(Build.ArtifactStagingDirectory)/nextjs.zip'
       replaceExistingArchive: true
 
-  # 7. Publish artifact
+  # 6. Publish artifact
   - task: PublishBuildArtifacts@1
     inputs:
       PathtoPublish: '$(Build.ArtifactStagingDirectory)'
