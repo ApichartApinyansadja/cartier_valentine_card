@@ -18,6 +18,7 @@ body {
   src: url('/fonts/BrilliantCutPro_font/BrilliantCutPro-Thin.ttf') format('truetype');
   font-weight: 100;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -25,6 +26,7 @@ body {
   src: url('/fonts/BrilliantCutPro_font/BrilliantCutPro-Light.ttf') format('truetype');
   font-weight: 300;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -32,6 +34,7 @@ body {
   src: url('/fonts/BrilliantCutPro_font/BrilliantCutPro-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -39,6 +42,7 @@ body {
   src: url('/fonts/BrilliantCutPro_font/BrilliantCutPro-Medium.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -46,6 +50,7 @@ body {
   src: url('/fonts/BrilliantCutPro_font/BrilliantCutPro-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -53,6 +58,7 @@ body {
   src: url('/fonts/BrilliantCutPro_font/BrilliantCutPro-Black.ttf') format('truetype');
   font-weight: 900;
   font-style: normal;
+  font-display: swap;
 }
 
 /* NotoSansThai Family */
@@ -61,6 +67,7 @@ body {
   src: url('/fonts/NotoSansThai-Font/NotoSansThai-Thin.ttf') format('truetype');
   font-weight: 100;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -68,6 +75,7 @@ body {
   src: url('/fonts/NotoSansThai-Font/NotoSansThai-Light.ttf') format('truetype');
   font-weight: 300;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -75,6 +83,7 @@ body {
   src: url('/fonts/NotoSansThai-Font/NotoSansThai-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -82,6 +91,7 @@ body {
   src: url('/fonts/NotoSansThai-Font/NotoSansThai-Medium.ttf') format('truetype');
   font-weight: 500;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -89,6 +99,7 @@ body {
   src: url('/fonts/NotoSansThai-Font/NotoSansThaiUI-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
@@ -96,6 +107,7 @@ body {
   src: url('/fonts/NotoSansThai-Font/NotoSansThaiUI-Black.ttf') format('truetype');
   font-weight: 900;
   font-style: normal;
+  font-display: swap;
 }
 
 .font-NotoSansThai {
