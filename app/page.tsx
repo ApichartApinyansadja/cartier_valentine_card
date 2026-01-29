@@ -115,9 +115,9 @@ function HomeContent() {
   const [currentStep, setCurrentStep] = useState<0 | 1 | 2 | 3>(0);
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const [formData, setFormData] = useState({
-    to: "You คุณ",
-    from: "Me ผม",
-    message: "Happy Valentine's Day สุขสันต์วันวาเลนไทน์",
+    to: "You",
+    from: "Me",
+    message: "Happy Valentine's Day",
   });
   const [cardImageDataUrl, setCardImageDataUrl] = useState<string>("");
   const [merging, setMerging] = useState(false);
@@ -282,84 +282,157 @@ function HomeContent() {
   const mergeImageWithText = async () => {
     try {
       setMerging(true);
-      const imageUrl = getSelectedProductData()!.cardImage!;
-      
-      // Wait for fonts to be ready before rendering
-      if (typeof document !== 'undefined' && 'fonts' in document) {
-        try {
-          await (document.fonts as FontFaceSet).ready;
-          console.log('✅ Fonts loaded successfully');
-        } catch (e) {
-          console.warn('⚠️ Font loading warning:', e);
-        }
-      }
-      
-      // Load the image
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        // Create canvas - clean white card without border
-        const canvas = document.createElement('canvas');
-        canvas.width = 500;
-        canvas.height = 840;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
 
-        // Draw white background
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, 500, 840);
+      await Promise.all([
+        document.fonts.load('500 1em NotoSansThai'),
+        document.fonts.load('700 1em NotoSansThai'),
+        document.fonts.load('500 1em BrilliantCutPro'),
+        document.fonts.load('700 1em BrilliantCutPro')
+      ]);
 
-        // Draw Cartier logo
-        ctx.fillStyle = '#2c2c2c';
-        ctx.font = 'italic 52px serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Cartier', 250, 60);
+      const config = {
+        width: 500,
+        padding: 60, 
+        lineHeight: 34,
+        fontTH: 'NotoSansThai',
+        fontEN: 'BrilliantCutPro',
+        colorText: '#2c2c2c',
+        maxWidth: 380 
+      };
 
-        // Draw product image
-        ctx.drawImage(img, 40, 90, 420, 560);
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d')!;
 
-        // Draw text below image
-        ctx.fillStyle = '#2c2c2c';
-        ctx.textAlign = 'center';
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-
-        // To / Message / From with balanced vertical spacing
-        const toY = 700;
-        const spacingToMsg = 50;
-        const lineHeight = 24;
-        const spacingMsgFrom = 50;
-
-        ctx.font = "20px 'NotoSansThai'";
-        ctx.fillText(`To. ${formData.to}`, 250, toY);
-
-        const messageLines = (formData.message || '').split('\n');
-        const messageStartY = toY + spacingToMsg;
-        const lastLineY = messageStartY + (messageLines.length - 1) * lineHeight;
-
-        ctx.font = "22px 'NotoSansThai'";
-        messageLines.forEach((line, idx) => {
-          ctx.fillText(line, 250, messageStartY + idx * lineHeight);
+       // วัดความกว้าง
+      const measureMixedWidth = (ctx: CanvasRenderingContext2D, text: string, baseSize: number, weight: string) => {
+        let width = 0;
+        Array.from(text).forEach(char => {
+          const isThai = /[ก-๙]/.test(char);
+          const font = isThai ? config.fontTH : config.fontEN;
+          const size = isThai ? baseSize * 1.1 : baseSize;
+          ctx.font = `${weight} ${size}px ${font}`;
+          width += ctx.measureText(char).width;
         });
+        return width;
+      };
 
-        ctx.font = "20px 'NotoSansThai'";
-        ctx.fillText(`From. ${formData.from}`, 250, lastLineY + spacingMsgFrom);
-
-        // Convert to JPEG
-        const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
+      const getWrappedLines = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number, baseSize: number): string[] => {
+        const segmenter = new Intl.Segmenter('th', { granularity: 'word' });
+        const segments = Array.from(segmenter.segment(text));
         
-        // Delay 3 seconds before showing
-        setTimeout(() => {
-          setCardImageDataUrl(dataUrl);
-          setMerging(false);
-        }, 2000);
+        let lines: string[] = [];
+        let currentLine = "";
+
+        segments.forEach(segment => {
+          const word = segment.segment;
+          const testLine = currentLine + word;
+          // ใช้ weight 500 ตามการวาด Message จริง
+          const testWidth = measureMixedWidth(ctx, testLine, baseSize, '500');
+
+          if (testWidth > maxWidth && currentLine.length > 0) {
+            lines.push(currentLine.trim());
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        });
+        if (currentLine) lines.push(currentLine.trim());
+        return lines;
       };
-      img.onerror = () => {
-        console.error('Failed to load image');
-        alert('ไม่สามารถโหลดรูปได้');
+
+      const rawLines = (formData.message || '').split('\n');
+      let finalMessageLines: string[] = [];
+      rawLines.forEach(line => {
+        if (line.trim() === "") {
+          finalMessageLines.push("");
+        } else {
+          finalMessageLines.push(...getWrappedLines(tempCtx, line, config.maxWidth, 20));
+        }
+      });
+
+      const productImageHeight = 520; 
+      const toY = 130 + productImageHeight + 50;
+      const messageStartY = toY + 45;
+      const lastLineY = messageStartY + (finalMessageLines.length * config.lineHeight);
+      const totalHeight = lastLineY + 90;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = config.width;
+      canvas.height = totalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const fillMixedText = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, baseSize: number, weight: string) => {
+        const totalWidth = measureMixedWidth(ctx, text, baseSize, weight);
+        let currentX = x - totalWidth / 2;
+
+        Array.from(text).forEach(char => {
+          const isThai = /[ก-๙]/.test(char);
+          const font = isThai ? config.fontTH : config.fontEN;
+          const size = isThai ? baseSize * 1.1  : baseSize;
+          ctx.font = `${weight} ${size}px ${font}`;
+          ctx.fillText(char, currentX, y);
+          currentX += ctx.measureText(char).width;
+        });
+      };
+
+      const drawMixedWeightLine = (ctx: CanvasRenderingContext2D, label: string, value: string, x: number, y: number, baseSize: number) => {
+        const labelW = measureMixedWidth(ctx, label, baseSize, '700');
+        const valueW = measureMixedWidth(ctx, value, baseSize, '500');
+        const totalWidth = labelW + valueW;
+        let currentX = x - totalWidth / 2;
+
+        Array.from(label).forEach(char => {
+          const isThai = /[ก-๙]/.test(char);
+          ctx.font = `700 ${isThai ? baseSize * 1.1 : baseSize}px ${isThai ? config.fontTH : config.fontEN}`;
+          ctx.fillText(char, currentX, y);
+          currentX += ctx.measureText(char).width;
+        });
+        Array.from(value).forEach(char => {
+          const isThai = /[ก-๙]/.test(char);
+          ctx.font = `500 ${isThai ? baseSize * 1.1 : baseSize}px ${isThai ? config.fontTH : config.fontEN}`;
+          ctx.fillText(char, currentX, y);
+          currentX += ctx.measureText(char).width;
+        });
+      };
+
+      const imageUrl = getSelectedProductData()!.cardImage!;
+      const logoUrl = '/step2/cartier_logo_black.webp';
+      const loadImage = (url: string): Promise<HTMLImageElement> => {
+        return new Promise((resolve, reject) => {
+          const img = new Image(); img.crossOrigin = "anonymous"; img.src = url;
+          img.onload = () => resolve(img); img.onerror = () => reject(new Error("Load failed"));
+        });
+      };
+
+      const [productImg, logoImg] = await Promise.all([loadImage(imageUrl), loadImage(logoUrl)]);
+
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(logoImg, (config.width - 160) / 2, 50, 160, 40);
+      // วาดรูปสินค้าโดยใช้ padding ใหม่เพื่อให้สมดุล
+      ctx.drawImage(productImg, 20, 120, config.width - 40, productImageHeight);
+
+      ctx.fillStyle = config.colorText;
+
+      // 1. To: 
+      drawMixedWeightLine(ctx, "To. ", formData.to, config.width / 2, toY, 19);
+
+      // 2. Message: (Auto Wrap ภายใน maxWidth 380)
+      finalMessageLines.forEach((line, idx) => {
+        const yPos = messageStartY + (idx * config.lineHeight);
+        fillMixedText(ctx, line, config.width / 2, yPos + 5, 20, '500');
+      });
+
+      // 3. From: 
+      drawMixedWeightLine(ctx, "From. ", formData.from, config.width / 2, lastLineY + 20, 19);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      setTimeout(() => {
+        setCardImageDataUrl(dataUrl);
         setMerging(false);
-      };
-      img.src = imageUrl;
+      }, 2000);
+
     } catch (error) {
       console.error('Error merging card:', error);
       alert('ไม่สามารถประมวลผลการ์ดได้');
@@ -611,7 +684,7 @@ function HomeContent() {
         <div className="flex flex-col items-center justify-center h-screen gap-6">
           <div className="flex flex-col items-center gap-4">
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-red-600 border-t-red-100" />
-            <p className="text-red-100 font-NotoSansThai text-lg">Loading...</p>
+            <p className="text-red-100 font-BrilliantCutPro text-lg">Loading...</p>
           </div>
         </div>
       )}
@@ -689,14 +762,16 @@ function HomeContent() {
 
               {/* Button overlay - only show when not playing */}
               {!isPlayingCover && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ zIndex: 100 }}>
-                  <h1 className="text-5xl font-NotoSansThai font-bold text-red-100 text-center mb-6">CARTIER</h1>
-                  <h2 className="text-3xl font-NotoSansThai font-bold text-red-100 text-center mb-12">Valentine&apos;s Card</h2>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-center bg-no-repeat bg-cover" style={{ zIndex: 100 , backgroundImage: `url(${getAssetUrl("/cover/1.webp")})` }}>
+                  <div className="cartier-logo w-[40%] md:w-[35%] max-w-[200px] mx-auto absolute left-1/2 -translate-x-1/2 top-[4.5%] z-50 transition">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={getAssetUrl("/step1/cartier_logo.webp")} alt="Cartier Logo" />
+                  </div>
                   <button
                     onClick={handleStartCoverAnimation}
-                    className="px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded font-NotoSansThai text-lg"
+                    className="absolute px-8 py-2 font-NotoSansThai text-base text-white border border-white/80 bg-stone-900/40 hover:bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition bottom-[3.5%]"
                   >
-                    คลิกเพื่อรังสรรค์การ์ดอวยพร
+                    เริ่มค้นหาของขวัญ
                   </button>
                 </div>
               )}
@@ -709,7 +784,7 @@ function HomeContent() {
             <div className={`relative w-full h-screen overflow-hidden flex items-center justify-center bg-black transition-opacity duration-[3000ms] ease-in-out`}>
               <div className="relative aspect-[1080/1920] min-w-full min-h-full shrink-0 bg-top_center bg-no-repeat transition-opacity duration-[2000ms]" style={{ backgroundImage: `url(${getAssetUrl("/cover/59.webp")})`, backgroundSize: '100% 100%' }}>
                 
-                <div className="cartier-logo w-[40%] max-w-[200px] mx-auto mt-[7.5%]">
+                <div className="cartier-logo w-[30%] md:w-[35%] max-w-[200px] mx-auto mt-[7.5%]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={getAssetUrl("/step1/cartier_logo.webp")} alt="Cartier Logo" />
                 </div>
@@ -769,15 +844,9 @@ function HomeContent() {
                               ))}
                             </Page>
                           ))}
-
                           <PageCover>THE END</PageCover>
                         </HTMLFlipBook>
-                    
-                        <div className="absolute w-full top-[10%] mb-4 abolute z-50 font-NotoSansThai">
-                            <p className="text-center text-black font-bold text-[20px]">เลือกชิ้นงาน</p>
-                            <p className="text-center text-black font-bold text-[20px]">เพื่อเป็นตัวแทนแห่งความรัก</p>
-                        </div>
-                        
+                                     
                         <div className="absolute h-full w-full top-1/2 -translate-y-1/2  mb-4 abolute z-50">
                           <button
                             onClick={() => bookRef.current?.pageFlip().flipPrev("top")}
@@ -785,11 +854,8 @@ function HomeContent() {
                             className="px-4 py-2 bg-transparent hover:bg-white/20 disabled:bg-transparent text-white rounded text-sm h-full absolute left-0 min-w-[100px]"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={getAssetUrl("/step1/arrow-left.webp")} className="w-[30%] mx-auto" alt="" />
+                            <img src={getAssetUrl("/step1/arrow-left.webp")} className="w-[30%] md:w-[40%] mx-auto" alt="" />
                           </button>
-                          {/* <span className="text-red-100 font-NotoSansThai min-w-20 text-center">
-                            [{page} of {totalPage - 2}]
-                          </span> */}
                           
                           <button
                             onClick={() => bookRef.current?.pageFlip().flipNext("top")}
@@ -797,43 +863,25 @@ function HomeContent() {
                             className="px-4 py-2 bg-transparent hover:bg-white/20 disabled:bg-transparent text-white rounded text-sm h-full absolute right-0 min-w-[100px]"
                           >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={getAssetUrl("/step1/arrow-right.webp")} className="w-[30%] mx-auto" alt="" />
+                            <img src={getAssetUrl("/step1/arrow-right.webp")} className="w-[30%] md:w-[40%] mx-auto" alt="" />
                           </button>
                         </div>
                       </div>
-                    
-
-                    <nav className="flex justify-center gap-[0.75rem] mt-4 absolute bottom-[15%] w-full">
-                      {Array.from({ length: totalPage - 2 }).map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => bookRef.current?.pageFlip().flip(i + 1)}
-                          className={`
-                            w-2 h-2 rotate-45 transition-all duration-300 transform
-                            ${page === i + 1 
-                              ? 'bg-[#c10016] scale-100 shadow-[0_0_8px_rgba(193,0,22,0.4)]' 
-                              : 'bg-[#a48f72] hover:bg-[#c10016]/50'
-                            }
-                          `}
-                          aria-label={`Go to page ${i + 1}`}
-                        />
-                      ))}
-                    </nav>
                     </>
                   ) 
                   :
                   (
-                    <div className="text-white">Loading Book...</div> 
+                    <div className="text-white font-BrilliantCutPro">Loading Book...</div> 
                   )}
                   </div>
                   </div>
                 </div>
               </div>
             
-            <div className="flex flex-col items-center mb-4 absolute bottom-[3.5%] z-50 ">
+            <div className="flex flex-col items-center absolute bottom-[3.5%] z-50 ">
                 <button
                   onClick={handleConfirmStep1}
-                  className="px-10 py-2.5 font-NotoSansThai text-base text-white border border-white/80 bg-stone-900/40 hover:bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition"
+                  className="px-10 py-2 font-NotoSansThai text-base text-white border border-white/80 bg-stone-900/40 hover:bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition"
                 >
                   ตกลง
                 </button>
@@ -855,7 +903,7 @@ function HomeContent() {
 
             <div className="space-y-6 text-white">
               <div className="space-y-1">
-                <div className="flex gap-2 text-base font-NotoSansThai text-white border-b border-white/70 pb-2 items-baseline">
+                <div className="flex gap-2 text-base text-white border-b border-white/70 pb-2 items-baseline">
                   <span className="font-semibold w-[22.5%] font-BrilliantCutPro">To</span>
                   <span className="opacity-80 mr-[5%]">:</span>
                   <input
@@ -903,17 +951,17 @@ function HomeContent() {
                   className="w-full bg-transparent text-white placeholder-white/70 focus:outline-none font-NotoSansThai text-base text-center mt-4 border border-white/70 resize-none overflow-hidden"
                   style={{ height: '60px', padding: '15px 8px', lineHeight: '1.5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 />
-                <div className="text-amber-100 text-xs text-white font-NotoSansThai">
+                <div className="text-amber-100 text-xs text-white font-BrilliantCutPro">
                   ( {formData.message.length} / 50 )
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex gap-4 justify-around absolute bottom-[7.5%] w-full left-1/2 -translate-x-1/2 max-w-md ">
+          <div className="flex gap-4 justify-around absolute bottom-[3.5%] w-full left-1/2 -translate-x-1/2 max-w-md ">
             <button
               onClick={handleBackStep2}
-              className="w-[35%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
+              className="w-[35%] px-4 flex justify-center items-center py-2 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={getAssetUrl("/icons/prev.webp")} className="h-[20px] mr-2" alt="" />
@@ -922,7 +970,7 @@ function HomeContent() {
             <button
               onClick={handleConfirmStep2}
               disabled={!formData.to || !formData.from || !formData.message}
-              className="w-[35%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-[35%] px-4 flex justify-center items-center py-2 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <span className="font-NotoSansThai ml-4">เรียบร้อย</span>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -956,10 +1004,10 @@ function HomeContent() {
                     </div>
                   )}
 
-                  <div className="flex gap-3 justify-center mt-6 text-base absolute bottom-[7.5%] w-full">
+                  <div className="flex gap-3 justify-center mt-6 text-base absolute bottom-[3.5%] w-full">
                     <button
                       onClick={handleBackStep3}
-                      className="w-[30%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
+                      className="w-[30%] px-4 flex justify-center items-center py-2 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={getAssetUrl("/icons/prev.webp")} className="h-[20px] mr-2" alt="" />
@@ -968,7 +1016,7 @@ function HomeContent() {
                     <button 
                       onClick={handleSave}
                       disabled={!cardImageDataUrl}
-                      className="w-[30%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
+                      className="w-[30%] px-4 flex justify-center items-center py-2 bg-stone-900/40 hover:bg-white/10 disabled:opacity-60 disabled:cursor-not-allowed text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={getAssetUrl("/icons/save.webp")} className="h-[20px] mr-2" alt="" />
@@ -976,7 +1024,7 @@ function HomeContent() {
                     </button>
                     <button 
                       onClick={handleShare}
-                      className="w-[30%] px-4 flex justify-center items-center py-2.5 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
+                      className="w-[30%] px-4 flex justify-center items-center py-2 bg-stone-900/40 hover:bg-white/10 text-white border border-white/80 shadow-[0_0_0_1px_rgba(255,255,255,0.2)] transition flex items-center gap-2"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={getAssetUrl("/icons/share.webp")} className="h-[20px] mr-2" alt="" />
