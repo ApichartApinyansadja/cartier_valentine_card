@@ -409,9 +409,9 @@ function HomeContent() {
 
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(logoImg, (config.width - 160) / 2, 50, 160, 40);
+      ctx.drawImage(logoImg, (config.width - 160) / 2, 50, 160, 50);
       // วาดรูปสินค้าโดยใช้ padding ใหม่เพื่อให้สมดุล
-      ctx.drawImage(productImg, 20, 120, config.width - 40, productImageHeight);
+      ctx.drawImage(productImg, 20, 130, config.width - 40, productImageHeight);
 
       ctx.fillStyle = config.colorText;
 
@@ -936,7 +936,7 @@ function HomeContent() {
                   <span className="opacity-80 mr-[5%]">:</span>
                   <span className="text-white font-medium opacity-80 font-NotoSansThai">( จำกัดข้อความไม่เกิน 50 ตัวอักษร )</span>
                 </div>
-                <textarea
+                <textarea 
                   value={formData.message}
                   placeholder="พิมพ์ข้อความของคุณที่นี่"
                   onChange={(e) => {
@@ -949,7 +949,18 @@ function HomeContent() {
                   }}
                   maxLength={50}
                   className="w-full bg-transparent text-white placeholder-white/70 focus:outline-none font-NotoSansThai text-base text-center mt-4 border border-white/70 resize-none overflow-hidden"
-                  style={{ height: '60px', padding: '15px 8px', lineHeight: '1.5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  style={{ 
+                    height: '100px',          
+                    lineHeight: '50px',       
+                    padding: '5px 8px',        
+                    display: 'block', 
+                    backgroundImage: 'linear-gradient(transparent 48px, rgba(255,255,255,0.7) 49px)', 
+                    backgroundSize: '100% 50px', 
+                    backgroundRepeat: 'repeat-y',
+                    backgroundPosition: '0 0px', 
+                    border: 'none',
+                    marginTop: '-1px'
+                  }}
                 />
                 <div className="text-amber-100 text-xs text-white font-BrilliantCutPro">
                   ( {formData.message.length} / 50 )
